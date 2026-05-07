@@ -28,11 +28,14 @@ export default function LiquidBlob({
   const pathRef = useRef(null)
   const raf = useRef(null)
 
-  // On low-power Safari (or when the user prefers reduced motion) the blob
-  // is still pretty as a static gradient — skip the per-frame path lerp
-  // entirely. That's one fewer 60fps RAF subscriber AND avoids touching
-  // the SVG attribute (which forces a repaint of a heavily-blurred layer).
-  const animate = !IS_LOW_POWER && !RM
+  // On low-power devices we skip the blob entirely. A 50px CSS blur on a
+  // 600px element + per-frame path morph is the single most expensive
+  // thing the page does — a 2008-class GPU literally cannot keep up.
+  // The gradients on the section do most of the visual work anyway.
+  // When the user prefers reduced motion we still RENDER the blob, but
+  // statically, so the gradient warmth remains.
+  const skip = IS_LOW_POWER
+  const animate = !RM && !skip
 
   // Halve the canvas + blur on phones: a 50px blur on a 600px element is
   // arguably the single most expensive thing GPU-accelerated WebKit does.
@@ -64,6 +67,8 @@ export default function LiquidBlob({
       cancelAnimationFrame(raf.current)
     }
   }, [duration, delay, animate])
+
+  if (skip) return null
 
   return (
     <motion.svg

@@ -45,17 +45,29 @@ export default function HeartBackground() {
       aria-hidden
       className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
     >
-      {/* Soft glows */}
-      <div className="absolute -top-40 left-1/4 h-[40rem] w-[40rem] rounded-full bg-rose-500/20 blur-[120px]" />
-      <div className="absolute -bottom-40 right-1/4 h-[40rem] w-[40rem] rounded-full bg-gold-500/15 blur-[120px]" />
-      {/* Third orb is the most expensive (third 110px blur layer); skip
-          it on phones where blur is the #1 cause of jank. */}
-      {!IS_MOBILE && (
-        <div className="absolute top-1/3 right-1/3 h-[30rem] w-[30rem] rounded-full bg-rose-700/20 blur-[110px]" />
+      {/* Soft glows. On low-power: a single static gradient instead of
+          two/three 120px-blur orbs (CSS blur is the #1 cause of jank). */}
+      {IS_LOW_POWER ? (
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse at 25% 0%, rgba(230,51,107,0.18) 0%, transparent 55%), radial-gradient(ellipse at 80% 100%, rgba(212,164,92,0.12) 0%, transparent 55%)',
+          }}
+        />
+      ) : (
+        <>
+          <div className="absolute -top-40 left-1/4 h-[40rem] w-[40rem] rounded-full bg-rose-500/20 blur-[120px]" />
+          <div className="absolute -bottom-40 right-1/4 h-[40rem] w-[40rem] rounded-full bg-gold-500/15 blur-[120px]" />
+          {!IS_MOBILE && (
+            <div className="absolute top-1/3 right-1/3 h-[30rem] w-[30rem] rounded-full bg-rose-700/20 blur-[110px]" />
+          )}
+        </>
       )}
 
-      {/* Tiny twinkling particles */}
-      {particles.map((p) => (
+      {/* Tiny twinkling particles — skipped on low-power (12 motion-svg
+          subscribers running every frame are not worth a few sparkles). */}
+      {!IS_LOW_POWER && particles.map((p) => (
         <motion.span
           key={`p-${p.id}`}
           initial={{ opacity: 0 }}
@@ -77,8 +89,8 @@ export default function HeartBackground() {
         />
       ))}
 
-      {/* Floating hearts */}
-      {hearts.map((h) => (
+      {/* Floating hearts — same reasoning: skip on low-power. */}
+      {!IS_LOW_POWER && hearts.map((h) => (
         <motion.svg
           key={`h-${h.id}`}
           viewBox="0 0 24 24"

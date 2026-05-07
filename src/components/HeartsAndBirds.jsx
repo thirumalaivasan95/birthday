@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { motion } from 'framer-motion'
+import { isMobile as IS_MOBILE, isLowPower as IS_LOW_POWER } from '../utils/device.js'
 
 function rand(min, max) {
   return Math.random() * (max - min) + min
@@ -11,68 +12,69 @@ const HeartIcon = (props) => (
   </svg>
 )
 
-// A proper love-bird with body, head, beak, eye, tail, and two wings that
-// flap independently (upstroke + downstroke). Pure SVG — no images, no CSS
-// classes — so it works inline anywhere with zero network cost (GPRS-safe).
+// A peaceful white dove. Long, swept wings that flap SLOWLY (real doves
+// glide more than they flap). Pure SVG, drawn facing right; the parent
+// flips horizontally via CSS when flying right→left.
 //
-// `flapDuration` (seconds) sets the wing-beat rate. Smaller birds in real
-// life flap faster, so callers can pass a faster rate for tiny birds.
-const BirdIcon = ({ color = 'currentColor', flapDuration = 0.55, ...props }) => (
-  <svg viewBox="0 0 60 36" {...props}>
-    {/* Tail */}
-    <polygon points="22,18 16,15 16,22" fill={color} />
-    {/* Body */}
-    <ellipse cx="30" cy="18" rx="6.5" ry="3.2" fill={color} />
-    {/* Head */}
-    <circle cx="36.2" cy="16" r="2.6" fill={color} />
-    {/* Beak */}
-    <polygon points="38.8,15.4 42.5,16.5 38.8,17.6" fill="#d4a45c" />
+// `flapDuration` (seconds) sets the wing-beat rate. Default 1.6s gives
+// the slow, peaceful flap of a dove (vs 0.5s for a sparrow).
+const BirdIcon = ({ color = '#fff7fa', flapDuration = 1.6, ...props }) => (
+  <svg viewBox="0 0 70 40" {...props}>
+    {/* Forked tail */}
+    <polygon points="18,20 8,16 10,20 8,24" fill={color} opacity="0.95" />
+    {/* Sleek body */}
+    <ellipse cx="32" cy="20" rx="10" ry="3.6" fill={color} />
+    {/* Rounded head */}
+    <circle cx="44" cy="18" r="3.2" fill={color} />
+    {/* Short beak */}
+    <polygon points="46.5,17.4 51,18.4 46.5,19.4" fill="#d4a45c" />
     {/* Eye */}
-    <circle cx="36.6" cy="15.4" r="0.45" fill="#1a0b14" />
+    <circle cx="44.5" cy="17.6" r="0.5" fill="#1a0b14" />
 
-    {/* Upper wing — rotates up then back down for the flap.
-        transform-origin is the bird's shoulder. */}
+    {/* Upper wing — long and curved, like a real dove in flight.
+        Slow upstroke, longer keyTime on the glide (down) phase. */}
     <path
-      d="M30 17 Q 22 6 8 11 Q 22 14 30 17 Z"
+      d="M30 19 Q 22 4 0 8 Q 18 14 30 19 Z"
       fill={color}
-      opacity="0.9"
+      opacity="0.95"
     >
       <animateTransform
         attributeName="transform"
         type="rotate"
-        values="0 30 17; -28 30 17; 0 30 17"
-        keyTimes="0;0.5;1"
+        values="0 30 19; -34 30 19; 0 30 19"
+        keyTimes="0;0.45;1"
         dur={`${flapDuration}s`}
         repeatCount="indefinite"
       />
     </path>
 
-    {/* Lower wing — opposite phase, slightly more transparent for depth. */}
+    {/* Lower wing — in-phase with the upper (a dove's wings move together,
+        not opposite like a hummingbird), slightly translucent for depth. */}
     <path
-      d="M30 19 Q 22 30 8 25 Q 22 22 30 19 Z"
+      d="M30 21 Q 22 32 4 28 Q 20 24 30 21 Z"
       fill={color}
-      opacity="0.6"
+      opacity="0.7"
     >
       <animateTransform
         attributeName="transform"
         type="rotate"
-        values="0 30 19; 22 30 19; 0 30 19"
-        keyTimes="0;0.5;1"
+        values="0 30 21; -18 30 21; 0 30 21"
+        keyTimes="0;0.45;1"
         dur={`${flapDuration}s`}
         repeatCount="indefinite"
       />
     </path>
 
-    {/* A tiny floating heart trailing behind, because love-birds. */}
+    {/* A tiny rose-coloured heart trailing behind — doves of love. */}
     <path
-      d="M16 8 c-0.5,-0.7 -1.6,-0.7 -2.1,0 c-0.5,-0.7 -1.6,-0.7 -2.1,0 c-0.7,0.9 0.4,2.1 2.1,3.1 c1.7,-1 2.8,-2.2 2.1,-3.1 z"
+      d="M14 10 c-0.6,-0.8 -1.8,-0.8 -2.4,0 c-0.6,-0.8 -1.8,-0.8 -2.4,0 c-0.8,1 0.5,2.4 2.4,3.5 c1.9,-1.1 3.2,-2.5 2.4,-3.5 z"
       fill="#e6336b"
-      opacity="0.85"
+      opacity="0.8"
     >
       <animate
         attributeName="opacity"
-        values="0;0.85;0"
-        dur="2.4s"
+        values="0;0.8;0"
+        dur="3.2s"
         repeatCount="indefinite"
       />
     </path>
@@ -127,7 +129,7 @@ export default function HeartsAndBirds({
     }
 
     if (hearts) {
-      const n = Math.round(14 * density)
+      const n = IS_LOW_POWER ? Math.round(4 * density) : Math.round(14 * density)
       for (let i = 0; i < n; i++) {
         place('heart', () => ({
           size: rand(10, 22),
@@ -140,58 +142,36 @@ export default function HeartsAndBirds({
       }
     }
 
-    if (birds) {
-      // Aim for 2–4 visible birds at any moment. They wander between
-      // random waypoints rather than gliding straight across.
-      const n = Math.max(2, Math.round(4 * density))
+    if (birds && !IS_LOW_POWER) {
+      // Doves drift across the section from off-screen to off-screen
+      // (NEVER stuck in a loop inside the frame). 2–4 in flight at any
+      // moment, with staggered delays so a fresh one keeps appearing.
+      const baseN = IS_MOBILE ? 3 : 4
+      const n = Math.max(2, Math.round(baseN * density))
       for (let i = 0; i < n; i++) {
-        const size = rand(28, 46)
-        const flapDuration = (size / 60) * rand(0.42, 0.62)
-        // 7 waypoints across the whole section, looped so it repeats
-        // seamlessly. Heading + horizontal flip computed per segment
-        // so the bird always faces where it's flying.
-        const wpCount = 7
-        const xs = []
-        const ys = []
-        for (let k = 0; k < wpCount; k++) {
-          xs.push(rand(4, 96))
-          ys.push(rand(8, 88))
-        }
-        xs.push(xs[0]); ys.push(ys[0])
-        const rotates = []
-        const flips = []
-        for (let k = 0; k < xs.length - 1; k++) {
-          const dx = xs[k + 1] - xs[k]
-          const dy = ys[k + 1] - ys[k]
-          const angle = Math.atan2(dy, dx) * (180 / Math.PI)
-          const flip = Math.abs(angle) > 90
-          let r = flip ? 180 - angle : angle
-          if (r > 35) r = 35
-          if (r < -35) r = -35
-          rotates.push(r)
-          flips.push(flip)
-        }
-        rotates.push(rotates[0]); flips.push(flips[0])
-
-        arr.push({
-          id: id++,
-          type: 'bird',
-          // left/top unused for birds (we drive them via xs/ys), but the
-          // shared placement contract expects them.
-          left: xs[0],
-          top: ys[0],
+        const size = rand(30, 48)
+        // Doves flap SLOWLY — 1.4–2.2s per beat (vs 0.5s for the old bird).
+        const flapDuration = rand(1.4, 2.2)
+        place('bird', () => ({
           size,
-          color: ['rgba(255,245,247,0.85)', 'rgba(255,220,230,0.8)', 'rgba(212,164,92,0.75)'][i % 3],
-          duration: rand(26, 42),
-          delay: rand(0, 8),
+          // Soft warm whites — pure dove plumage with a hint of cream.
+          color: ['#fff7fa', '#fbeae0', '#f8e6d6'][Math.floor(Math.random() * 3)],
+          // Long, peaceful crossings: 22–40s edge-to-edge.
+          duration: rand(22, 40),
+          delay: rand(0, 18),
           opacity: rand(0.7, 0.95),
+          // Random flight band across the whole height (not just upper sky).
+          band: rand(8, 80),
+          // Gentle sine undulation — doves glide more than they wave.
+          amplitude: rand(15, 45),
+          waves: rand(1.2, 2.4),
+          fromLeft: Math.random() > 0.5,
           flapDuration,
-          xs, ys, rotates, flips,
-        })
+        }))
       }
     }
 
-    if (butterflies) {
+    if (butterflies && !IS_LOW_POWER) {
       const n = Math.round(5 * density)
       for (let i = 0; i < n; i++) {
         place('butterfly', () => ({
@@ -206,7 +186,7 @@ export default function HeartsAndBirds({
     }
 
     if (sparkles) {
-      const n = Math.round(18 * density)
+      const n = IS_LOW_POWER ? Math.round(5 * density) : Math.round(18 * density)
       for (let i = 0; i < n; i++) {
         place('sparkle', () => ({
           size: rand(4, 10),
@@ -265,58 +245,63 @@ export default function HeartsAndBirds({
         }
 
         if (it.type === 'bird') {
-          // Wander between random waypoints — NOT a straight glide.
-          // Outer motion drives left/top across the section in % units;
-          // inner motion handles per-segment heading + horizontal flip
-          // so the bird visually faces where it's flying. Both share
-          // the same `times` array so headings stay in sync with motion.
-          const times = it.xs.map((_, k) => k / (it.xs.length - 1))
-          // Hold full opacity across the whole loop (the seamless waypoint
-          // closure means the bird never needs to disappear). The `initial`
-          // opacity 0 still fades it in gracefully on first cycle.
-          const opacityFrames = it.xs.map(() => it.opacity)
+          // Off-screen → across → off-screen. The dove FLIES AWAY each
+          // cycle and a new entry appears after `delay` (staggered across
+          // birds so the sky always has 2–4 visible without ever feeling
+          // looped).
+          const STEPS = 16
+          const ys = []
+          const rotates = []
+          for (let k = 0; k <= STEPS; k++) {
+            const t = k / STEPS
+            const phase = t * it.waves * Math.PI * 2
+            ys.push(Math.sin(phase) * it.amplitude)
+            // Bank gently with the climb/dive (±10°).
+            rotates.push(Math.cos(phase) * 10 * (it.fromLeft ? 1 : -1))
+          }
+          const birdStyle = {
+            top: `${it.band}%`,
+            left: 0,
+            width: it.size * 1.6,
+            height: it.size,
+            // Low-end devices: drop the glow filter — SVG drop-shadow is
+            // shockingly expensive on a 2008-class GPU.
+            willChange: 'transform',
+          }
           return (
-            <motion.div
+            <motion.span
               key={it.id}
-              className="absolute"
-              style={{ top: 0, left: 0, width: it.size * 1.6, height: it.size }}
-              initial={{ left: `${it.xs[0]}%`, top: `${it.ys[0]}%`, opacity: 0 }}
+              initial={{ x: it.fromLeft ? '-18vw' : '118vw', opacity: 0 }}
               animate={{
-                left: it.xs.map((x) => `${x}%`),
-                top:  it.ys.map((y) => `${y}%`),
-                opacity: opacityFrames,
+                x: it.fromLeft ? '118vw' : '-18vw',
+                y: ys,
+                rotate: it.fromLeft ? rotates : rotates.map((r) => -r),
+                opacity: [0, it.opacity, it.opacity, 0],
               }}
               transition={{
                 duration: it.duration,
                 delay: it.delay,
                 repeat: Infinity,
-                ease: 'easeInOut',
-                times,
+                // Staggered repeatDelay so a fresh dove enters as the
+                // previous one exits — no synchronized flock effect.
+                repeatDelay: rand(2, 8),
+                ease: 'linear',
+                opacity: { times: [0, 0.06, 0.94, 1] },
               }}
+              className="absolute"
+              style={birdStyle}
             >
-              <motion.div
-                style={{ width: '100%', height: '100%' }}
-                animate={{
-                  rotate: it.rotates,
-                  scaleX: it.flips.map((f) => (f ? -1 : 1)),
+              <BirdIcon
+                width={it.size * 1.6}
+                height={it.size}
+                color={it.color}
+                flapDuration={it.flapDuration}
+                style={{
+                  // Mirror horizontally when flying right→left.
+                  transform: it.fromLeft ? 'none' : 'scaleX(-1)',
                 }}
-                transition={{
-                  duration: it.duration,
-                  delay: it.delay,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                  times,
-                }}
-              >
-                <BirdIcon
-                  width={it.size * 1.6}
-                  height={it.size}
-                  color={it.color}
-                  flapDuration={it.flapDuration}
-                  style={{ filter: `drop-shadow(0 0 8px ${it.color})` }}
-                />
-              </motion.div>
-            </motion.div>
+              />
+            </motion.span>
           )
         }
 

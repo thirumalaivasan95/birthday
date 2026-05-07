@@ -86,14 +86,19 @@ export default function BirthdayIntro({ onFinish }) {
           {/* Layer 3 — realistic fireworks during boom + promise.
               bgColor is null so the canvas doesn't paint over the moon /
               stars beneath. Particle trails still work via each particle's
-              own trail array. */}
-          {(phase === 'boom' || phase === 'promise') && (
+              own trail array.
+
+              On low-power devices we SKIP the canvas entirely — it's a
+              60fps RAF with hundreds of particles, which on a 2008-class
+              GPU literally locks the page. The RomanticBloom (CSS-only)
+              still gives a warm radial flash so the moment isn't lost. */}
+          {!IS_LOW_POWER && (phase === 'boom' || phase === 'promise') && (
             <Fireworks
               active
               intensity={
                 phase === 'boom'
-                  ? (IS_LOW_POWER ? 1.4 : IS_MOBILE ? 2.0 : 3.2)
-                  : (IS_LOW_POWER ? 0.5 : 1.1)
+                  ? (IS_MOBILE ? 2.0 : 3.2)
+                  : 1.1
               }
               duration={null}
               bgColor={null}
