@@ -88,17 +88,16 @@ export default function BirthdayIntro({ onFinish }) {
               stars beneath. Particle trails still work via each particle's
               own trail array.
 
-              On low-power devices we SKIP the canvas entirely — it's a
-              60fps RAF with hundreds of particles, which on a 2008-class
-              GPU literally locks the page. The RomanticBloom (CSS-only)
-              still gives a warm radial flash so the moment isn't lost. */}
-          {!IS_LOW_POWER && (phase === 'boom' || phase === 'promise') && (
+              On low-power devices the canvas runs in "lite" mode (DPR=1,
+              ~40% particles, no radial gradients, ~30fps) — visually
+              still vivid bursts, just lighter on the GPU. */}
+          {(phase === 'boom' || phase === 'promise') && (
             <Fireworks
               active
               intensity={
                 phase === 'boom'
-                  ? (IS_MOBILE ? 2.0 : 3.2)
-                  : 1.1
+                  ? (IS_LOW_POWER ? 1.3 : IS_MOBILE ? 2.0 : 3.2)
+                  : (IS_LOW_POWER ? 0.6 : 1.1)
               }
               duration={null}
               bgColor={null}

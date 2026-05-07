@@ -209,15 +209,15 @@ In `src/utils/device.js` — any **one** of these turns on `isLowPower`:
 |---|---|---|
 | `LiquidBlob` morphing gradients | Animated SVG with 50 px CSS blur | **Removed entirely** |
 | `HeartBackground` particles & hearts | 36 particles + 18 hearts animating forever | **Static gradient only**, no motion |
-| `BirthdayIntro` fireworks canvas | Full physics canvas (RAF + 100s of particles) | **Skipped** — CSS radial bloom replaces it |
+| `BirthdayIntro` fireworks canvas | Full physics canvas (RAF + 100s of particles, additive blending, radial-gradient halos, DPR=2) | **Lite mode** — same physics, ~40% particles, no halos/trails, `source-over` only, DPR=1, ~30 fps |
 | Doves & butterflies overlay | 4 doves + 5 butterflies + 14 hearts + 18 sparkles | Hearts 4, sparkles 5, **no doves, no butterflies** |
 | Photo collage cursor parallax | `useSpring` per card | Disabled |
 | `SmartPhoto` blurred letterbox | Duplicate decoded image at 28 px blur | Flat warm gradient |
 | Image counts on the night sky | 140 stars, shooting stars, 11 clouds | 40 stars, no shooting stars, 4 clouds |
 
-Net effect: **~80–90% fewer continuously-animated nodes**, **zero CSS blur passes per frame**, **no `requestAnimationFrame` canvas loops**.
+Net effect: **~80–90% fewer continuously-animated nodes**, **zero CSS blur passes per frame**, **the fireworks canvas runs at ~30 fps with ~3× less fill-rate**.
 
-The story still reads beautifully — just calmer.
+The story still reads beautifully — just calmer. The fireworks moment is **never** sacrificed.
 
 ---
 
