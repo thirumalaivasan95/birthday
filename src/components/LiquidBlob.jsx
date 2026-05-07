@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef } from 'react'
 import { motion } from 'framer-motion'
+import { isMobile as IS_MOBILE, isLowPower as IS_LOW_POWER, prefersReducedMotion as RM } from '../utils/device.js'
 
 // Two blob path "frames" we morph between.
 const FRAMES = [
@@ -25,10 +26,21 @@ export default function LiquidBlob({
 }) {
   const id = useId()
   const pathRef = useRef(null)
-  const frame = useRef(0)
   const raf = useRef(null)
 
+  // On low-power Safari (or when the user prefers reduced motion) the blob
+  // is still pretty as a static gradient — skip the per-frame path lerp
+  // entirely. That's one fewer 60fps RAF subscriber AND avoids touching
+  // the SVG attribute (which forces a repaint of a heavily-blurred layer).
+  const animate = !IS_LOW_POWER && !RM
+
+  // Halve the canvas + blur on phones: a 50px blur on a 600px element is
+  // arguably the single most expensive thing GPU-accelerated WebKit does.
+  const renderSize = IS_MOBILE ? Math.round(size * 0.6) : size
+  const renderBlur = IS_MOBILE ? Math.round(blur * 0.55) : blur
+
   useEffect(() => {
+    if (!animate) return
     let active = true
     let t = delay * -1000
 
@@ -51,15 +63,15 @@ export default function LiquidBlob({
       active = false
       cancelAnimationFrame(raf.current)
     }
-  }, [duration, delay])
+  }, [duration, delay, animate])
 
   return (
     <motion.svg
       viewBox="-100 -100 200 200"
-      width={size}
-      height={size}
+      width={renderSize}
+      height={renderSize}
       className={`pointer-events-none select-none ${className}`}
-      style={{ filter: `blur(${blur}px)`, opacity }}
+      style={{ filter: `blur(${renderBlur}px)`, opacity }}
       aria-hidden
     >
       <defs>

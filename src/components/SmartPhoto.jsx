@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { isLowPower as IS_LOW_POWER } from '../utils/device.js'
 
 // One image component, three jobs:
 //
@@ -75,9 +76,12 @@ export default function SmartPhoto({
         <div className="absolute inset-0 bg-[linear-gradient(110deg,rgba(255,255,255,0.04)_8%,rgba(255,255,255,0.10)_18%,rgba(255,255,255,0.04)_33%)] bg-[length:200%_100%] animate-pulse" />
       )}
 
-      {shouldLoad && fit === 'contain' && (
+      {/* Blurred backdrop fills the letterbox area on contain-fit photos.
+          On old iOS Safari this is the single biggest cost per photo (it
+          decodes the full image a second time and runs a 28px blur on
+          every paint) — fall back to a flat warm tint there. */}
+      {shouldLoad && fit === 'contain' && !IS_LOW_POWER && (
         <>
-          {/* Blurred backdrop fills the letterbox area */}
           <img
             src={src}
             alt=""
@@ -85,9 +89,11 @@ export default function SmartPhoto({
             className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${loaded ? 'opacity-60' : 'opacity-0'}`}
             style={{ filter: 'blur(28px) saturate(1.2)', transform: 'scale(1.15)' }}
           />
-          {/* Dim haze so text/captions read */}
           <div className="absolute inset-0 bg-ink-900/25" />
         </>
+      )}
+      {shouldLoad && fit === 'contain' && IS_LOW_POWER && (
+        <div className="absolute inset-0 bg-gradient-to-br from-ink-900 via-ink-900/95 to-rose-900/40" />
       )}
 
       {shouldLoad && (

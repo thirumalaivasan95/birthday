@@ -3,7 +3,7 @@ import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
 import LiquidBlob from '../components/LiquidBlob.jsx'
 import SmartPhoto from '../components/SmartPhoto.jsx'
 import { nonScanPhotos } from '../data/photos.js'
-import { pickRandom } from '../utils/shuffle.js'
+import { isMobile as IS_MOBILE, isTouch as IS_TOUCH, isLowPower as IS_LOW_POWER } from '../utils/device.js'
 
 // A casual scattered "sticky-note pile" of photos.
 //
@@ -17,82 +17,105 @@ import { pickRandom } from '../utils/shuffle.js'
 // give the OUTER layer the cursor parallax (style.x = parX) and the
 // INNER layer the drag + entry/exit animation. They don't fight.
 
-const CARD_COUNT_DESKTOP = 14
-const CARD_COUNT_MOBILE = 8
+// Grid dimensions: every card lives in its own cell so the playground
+// never has empty quadrants. Cards jitter inside their cell, so it still
+// feels organic — never gridded.
+const GRID_DESKTOP = { cols: 5, rows: 3 }   // 15 slots
+const GRID_MOBILE  = { cols: 3, rows: 4 }   // 12 slots
 
-const SWIPE_THRESHOLD_PX = 70
-const SWIPE_THRESHOLD_VELOCITY = 320
+const SWIPE_THRESHOLD_PX = 50
+const SWIPE_THRESHOLD_VELOCITY = 260
 
 function rand(a, b) { return a + Math.random() * (b - a) }
 
-// Random spawn slot anywhere in the playground.
-//   isMobile only adjusts size — positions stay the same so the layout
-//   feels equally full at any breakpoint.
-function randomSlot(isMobile = false) {
+// Pick a slot inside cell (col,row), jittered. Returns playground-%.
+function slotInCell(col, row, cols, rows, isMobile) {
+  const cellW = 100 / cols
+  const cellH = 100 / rows
+  // jitter inside ~70% of the cell so neighbours can overlap a touch
+  const jx = rand(0.10, 0.55)
+  const jy = rand(0.10, 0.55)
   return {
-    // % of the playground width / height — leaves a small margin so
-    // cards don't get clipped at the edges.
-    x: rand(2, 80),
-    y: rand(0, 75),
-    size: isMobile ? rand(7, 11) : rand(10, 16),  // rem
+    x: col * cellW + cellW * jx,
+    y: row * cellH + cellH * jy,
+    size: isMobile ? rand(9, 12) : rand(13, 17), // rem — medium
     rotate: rand(-14, 14),
-    depth: rand(0.45, 1.35),                       // parallax intensity
+    depth: rand(0.45, 1.25),
   }
 }
 
-function makeInitialCards(count, isMobile) {
+// Build a shuffled list of every (col,row) cell. We then assign one
+// card per cell so distribution is guaranteed.
+function shuffledCells(cols, rows) {
+  const cells = []
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++) cells.push([c, r])
+  for (let i = cells.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[cells[i], cells[j]] = [cells[j], cells[i]]
+  }
+  return cells
+}
+
+function makeInitialCards(grid, isMobile) {
+  const { cols, rows } = grid
+  const cells = shuffledCells(cols, rows)
   const used = new Set()
   const cards = []
-  for (let i = 0; i < count; i++) {
+  for (let i = 0; i < cells.length; i++) {
     const candidates = nonScanPhotos.filter((p) => !used.has(p.src))
     if (candidates.length === 0) break
     const photo = candidates[Math.floor(Math.random() * candidates.length)]
     used.add(photo.src)
-    cards.push({ id: i, photo, ...randomSlot(isMobile) })
+    const [c, r] = cells[i]
+    cards.push({ id: i, photo, cell: [c, r], ...slotInCell(c, r, cols, rows, isMobile) })
   }
   return cards
 }
 
 export default function PhotoCloud3D() {
-  // We treat all viewports the same on mount; the size variation in
-  // randomSlot keeps cards readable on either. The mobile flag is just
-  // for initial sizing; the layout is identical.
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
-  const initialCount = isMobile ? CARD_COUNT_MOBILE : CARD_COUNT_DESKTOP
+  const grid = IS_MOBILE ? GRID_MOBILE : GRID_DESKTOP
+  const [cards, setCards] = useState(() => makeInitialCards(grid, IS_MOBILE))
 
-  const [cards, setCards] = useState(() => makeInitialCards(initialCount, isMobile))
-
-  // ---- Cursor parallax (whole section listens) ----------------------------
+  // ---- Cursor parallax (desktop only — touch devices don't get mousemove
+  //      reliably and the spring subscribers are the most expensive thing
+  //      on this section for low-power phones) -----------------------------
+  const enableParallax = !IS_TOUCH && !IS_LOW_POWER
   const sectionRef = useRef(null)
   const mxRaw = useMotionValue(0)
   const myRaw = useMotionValue(0)
-  const mx = useSpring(mxRaw, { stiffness: 60, damping: 18, mass: 0.7 })
-  const my = useSpring(myRaw, { stiffness: 60, damping: 18, mass: 0.7 })
+  const mxSpring = useSpring(mxRaw, { stiffness: 60, damping: 18, mass: 0.7 })
+  const mySpring = useSpring(myRaw, { stiffness: 60, damping: 18, mass: 0.7 })
+  const mx = enableParallax ? mxSpring : null
+  const my = enableParallax ? mySpring : null
 
   function handleMove(e) {
+    if (!enableParallax) return
     const r = sectionRef.current?.getBoundingClientRect()
     if (!r) return
     mxRaw.set((e.clientX - r.left - r.width / 2) / r.width)
     myRaw.set((e.clientY - r.top - r.height / 2) / r.height)
   }
   function handleLeave() {
+    if (!enableParallax) return
     mxRaw.set(0)
     myRaw.set(0)
   }
 
-  // ---- Swipe respawn ------------------------------------------------------
+  // ---- Swipe respawn (re-uses the SAME cell so the playground stays full) -
   const respawn = useCallback((id) => {
     setCards((prev) => {
       const used = new Set(prev.filter((c) => c.id !== id).map((c) => c.photo.src))
       const candidates = nonScanPhotos.filter((p) => !used.has(p.src))
       if (candidates.length === 0) return prev
       const fresh = candidates[Math.floor(Math.random() * candidates.length)]
-      const isMob = window.innerWidth < 768
-      return prev.map((c) =>
-        c.id === id ? { ...c, photo: fresh, ...randomSlot(isMob) } : c,
-      )
+      return prev.map((c) => {
+        if (c.id !== id) return c
+        const [col, row] = c.cell
+        return { ...c, photo: fresh, ...slotInCell(col, row, grid.cols, grid.rows, IS_MOBILE) }
+      })
     })
-  }, [])
+  }, [grid.cols, grid.rows])
 
   return (
     <section
@@ -102,8 +125,12 @@ export default function PhotoCloud3D() {
       onMouseLeave={handleLeave}
       className="relative overflow-hidden py-32"
     >
-      <LiquidBlob className="absolute -left-40 top-10" size={680} from="#7d1638" to="#e6336b" opacity={0.4} />
-      <LiquidBlob className="absolute -right-40 bottom-0" size={620} from="#d4a45c" to="#a21946" opacity={0.35} delay={3} />
+      {!IS_LOW_POWER && (
+        <>
+          <LiquidBlob className="absolute -left-40 top-10" size={680} from="#7d1638" to="#e6336b" opacity={0.4} />
+          <LiquidBlob className="absolute -right-40 bottom-0" size={620} from="#d4a45c" to="#a21946" opacity={0.35} delay={3} />
+        </>
+      )}
 
       {/* Heading */}
       <div className="container-romance relative z-30 text-center">
@@ -142,9 +169,12 @@ function ScatteredCard({ card, mx, my, onSwipe }) {
 
   // Cursor parallax — owned by the OUTER motion.div via style.x / style.y.
   // The inner div owns drag + entry/exit. They can't fight because they
-  // live on different DOM elements.
-  const parX = useTransform(mx, (v) => v * depth * 36)
-  const parY = useTransform(my, (v) => v * depth * 22)
+  // live on different DOM elements. When parallax is disabled (touch /
+  // low-power) we feed a frozen motion-value so no subscribers run.
+  const zeroX = useMotionValue(0)
+  const zeroY = useMotionValue(0)
+  const parX = useTransform(mx ?? zeroX, (v) => v * depth * 36)
+  const parY = useTransform(my ?? zeroY, (v) => v * depth * 22)
 
   function handleDragEnd(_, info) {
     const swiped =

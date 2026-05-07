@@ -1,8 +1,12 @@
 import { useMemo } from 'react'
 import { motion } from 'framer-motion'
+import { isMobile as IS_MOBILE, isLowPower as IS_LOW_POWER } from '../utils/device.js'
 
-const HEARTS = 18
-const PARTICLES = 36
+// Counts halved on mobile, halved again on old iOS Safari. Each motion
+// element costs a subscription + transform-update per frame; on the SE
+// the difference between 18 hearts and 6 hearts is ~30% of the budget.
+const HEARTS    = IS_LOW_POWER ? 6  : IS_MOBILE ? 10 : 18
+const PARTICLES = IS_LOW_POWER ? 12 : IS_MOBILE ? 20 : 36
 
 function rand(min, max) {
   return Math.random() * (max - min) + min
@@ -44,7 +48,11 @@ export default function HeartBackground() {
       {/* Soft glows */}
       <div className="absolute -top-40 left-1/4 h-[40rem] w-[40rem] rounded-full bg-rose-500/20 blur-[120px]" />
       <div className="absolute -bottom-40 right-1/4 h-[40rem] w-[40rem] rounded-full bg-gold-500/15 blur-[120px]" />
-      <div className="absolute top-1/3 right-1/3 h-[30rem] w-[30rem] rounded-full bg-rose-700/20 blur-[110px]" />
+      {/* Third orb is the most expensive (third 110px blur layer); skip
+          it on phones where blur is the #1 cause of jank. */}
+      {!IS_MOBILE && (
+        <div className="absolute top-1/3 right-1/3 h-[30rem] w-[30rem] rounded-full bg-rose-700/20 blur-[110px]" />
+      )}
 
       {/* Tiny twinkling particles */}
       {particles.map((p) => (

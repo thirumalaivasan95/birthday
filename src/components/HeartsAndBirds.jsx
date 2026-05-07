@@ -141,28 +141,52 @@ export default function HeartsAndBirds({
     }
 
     if (birds) {
-      const n = Math.round(5 * density)
+      // Aim for 2–4 visible birds at any moment. They wander between
+      // random waypoints rather than gliding straight across.
+      const n = Math.max(2, Math.round(4 * density))
       for (let i = 0; i < n; i++) {
-        place('bird', () => {
-          const size = rand(26, 52)
-          // Smaller birds flap faster, like in real life.
-          const flapDuration = (size / 60) * rand(0.4, 0.7)
-          return {
-            size,
-            color: ['rgba(255, 245, 247, 0.6)', 'rgba(255, 220, 230, 0.55)', 'rgba(212, 164, 92, 0.5)'][
-              Math.floor(Math.random() * 3)
-            ],
-            duration: rand(20, 36),
-            delay: rand(0, 14),
-            opacity: rand(0.45, 0.78),
-            // Random vertical band for the flight (top portion of viewport)
-            band: rand(8, 65),
-            // Sine-wave amplitude + period for a natural undulating glide
-            amplitude: rand(20, 70),
-            waves: rand(2, 4),
-            fromLeft: Math.random() > 0.5,
-            flapDuration,
-          }
+        const size = rand(28, 46)
+        const flapDuration = (size / 60) * rand(0.42, 0.62)
+        // 7 waypoints across the whole section, looped so it repeats
+        // seamlessly. Heading + horizontal flip computed per segment
+        // so the bird always faces where it's flying.
+        const wpCount = 7
+        const xs = []
+        const ys = []
+        for (let k = 0; k < wpCount; k++) {
+          xs.push(rand(4, 96))
+          ys.push(rand(8, 88))
+        }
+        xs.push(xs[0]); ys.push(ys[0])
+        const rotates = []
+        const flips = []
+        for (let k = 0; k < xs.length - 1; k++) {
+          const dx = xs[k + 1] - xs[k]
+          const dy = ys[k + 1] - ys[k]
+          const angle = Math.atan2(dy, dx) * (180 / Math.PI)
+          const flip = Math.abs(angle) > 90
+          let r = flip ? 180 - angle : angle
+          if (r > 35) r = 35
+          if (r < -35) r = -35
+          rotates.push(r)
+          flips.push(flip)
+        }
+        rotates.push(rotates[0]); flips.push(flips[0])
+
+        arr.push({
+          id: id++,
+          type: 'bird',
+          // left/top unused for birds (we drive them via xs/ys), but the
+          // shared placement contract expects them.
+          left: xs[0],
+          top: ys[0],
+          size,
+          color: ['rgba(255,245,247,0.85)', 'rgba(255,220,230,0.8)', 'rgba(212,164,92,0.75)'][i % 3],
+          duration: rand(26, 42),
+          delay: rand(0, 8),
+          opacity: rand(0.7, 0.95),
+          flapDuration,
+          xs, ys, rotates, flips,
         })
       }
     }
@@ -241,62 +265,58 @@ export default function HeartsAndBirds({
         }
 
         if (it.type === 'bird') {
-          // Build sine-wave keyframes so the bird undulates naturally
-          // instead of just gliding in a straight line. Banking rotation
-          // matches the dive/climb so it feels like a real flight path.
-          const STEPS = 24
-          const ys = []
-          const rotates = []
-          for (let k = 0; k <= STEPS; k++) {
-            const t = k / STEPS
-            const phase = t * it.waves * Math.PI * 2
-            ys.push(Math.sin(phase) * it.amplitude)
-            // Bank with the direction of travel: derivative of sin = cos
-            rotates.push(Math.cos(phase) * 12 * (it.fromLeft ? 1 : -1))
-          }
-          // Override the per-item top with the bird's flight band so birds
-          // spread across the upper sky.
-          const birdStyle = {
-            top: `${it.band}%`,
-            left: 0,
-            width: it.size * 1.6,
-            height: it.size,
-          }
+          // Wander between random waypoints — NOT a straight glide.
+          // Outer motion drives left/top across the section in % units;
+          // inner motion handles per-segment heading + horizontal flip
+          // so the bird visually faces where it's flying. Both share
+          // the same `times` array so headings stay in sync with motion.
+          const times = it.xs.map((_, k) => k / (it.xs.length - 1))
+          // Hold full opacity across the whole loop (the seamless waypoint
+          // closure means the bird never needs to disappear). The `initial`
+          // opacity 0 still fades it in gracefully on first cycle.
+          const opacityFrames = it.xs.map(() => it.opacity)
           return (
-            <motion.span
+            <motion.div
               key={it.id}
-              initial={{
-                x: it.fromLeft ? '-15vw' : '115vw',
-                opacity: 0,
-              }}
+              className="absolute"
+              style={{ top: 0, left: 0, width: it.size * 1.6, height: it.size }}
+              initial={{ left: `${it.xs[0]}%`, top: `${it.ys[0]}%`, opacity: 0 }}
               animate={{
-                x: it.fromLeft ? '115vw' : '-15vw',
-                y: ys,
-                rotate: it.fromLeft ? rotates : rotates.map((r) => -r),
-                opacity: [0, it.opacity, it.opacity, 0],
+                left: it.xs.map((x) => `${x}%`),
+                top:  it.ys.map((y) => `${y}%`),
+                opacity: opacityFrames,
               }}
               transition={{
                 duration: it.duration,
                 delay: it.delay,
                 repeat: Infinity,
-                ease: 'linear',
-                opacity: { times: [0, 0.08, 0.92, 1] },
+                ease: 'easeInOut',
+                times,
               }}
-              className="absolute"
-              style={birdStyle}
             >
-              <BirdIcon
-                width={it.size * 1.6}
-                height={it.size}
-                color={it.color}
-                flapDuration={it.flapDuration}
-                style={{
-                  // Mirror horizontally when flying right→left
-                  transform: it.fromLeft ? 'none' : 'scaleX(-1)',
-                  filter: `drop-shadow(0 0 6px ${it.color})`,
+              <motion.div
+                style={{ width: '100%', height: '100%' }}
+                animate={{
+                  rotate: it.rotates,
+                  scaleX: it.flips.map((f) => (f ? -1 : 1)),
                 }}
-              />
-            </motion.span>
+                transition={{
+                  duration: it.duration,
+                  delay: it.delay,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                  times,
+                }}
+              >
+                <BirdIcon
+                  width={it.size * 1.6}
+                  height={it.size}
+                  color={it.color}
+                  flapDuration={it.flapDuration}
+                  style={{ filter: `drop-shadow(0 0 8px ${it.color})` }}
+                />
+              </motion.div>
+            </motion.div>
           )
         }
 

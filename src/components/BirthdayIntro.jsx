@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Fireworks from './Fireworks.jsx'
 import HeartsAndBirds from './HeartsAndBirds.jsx'
 import NightSky, { Moon } from './NightSky.jsx'
+import { isMobile as IS_MOBILE, isLowPower as IS_LOW_POWER } from '../utils/device.js'
 
 // Phases (sequential):
 //   3 → 2 → 1 → boom (Happy Birthday + fireworks) → promise (manual dismiss)
@@ -63,13 +64,24 @@ export default function BirthdayIntro({ onFinish }) {
               and shooting stars. Moon is intentionally OFF here so we can
               re-render it above the fireworks canvas (otherwise the canvas
               motion-blur would paint over it). */}
-          <NightSky withMoon={false} withShootingStars starCount={140} />
+          <NightSky
+            withMoon={false}
+            withShootingStars={!IS_LOW_POWER}
+            starCount={IS_LOW_POWER ? 40 : IS_MOBILE ? 70 : 140}
+            cloudCount={IS_LOW_POWER ? 4 : IS_MOBILE ? 7 : 11}
+          />
 
           {/* Soft warming overlay — keeps it romantic, not cold */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(230,51,107,0.14)_0%,transparent_65%)]" />
 
           {/* Layer 2 — hearts / butterflies / sparkles */}
-          <HeartsAndBirds density={0.7} hearts butterflies sparkles birds={false} />
+          <HeartsAndBirds
+            density={IS_LOW_POWER ? 0.25 : IS_MOBILE ? 0.45 : 0.7}
+            hearts
+            butterflies={!IS_LOW_POWER}
+            sparkles
+            birds={false}
+          />
 
           {/* Layer 3 — realistic fireworks during boom + promise.
               bgColor is null so the canvas doesn't paint over the moon /
@@ -78,7 +90,11 @@ export default function BirthdayIntro({ onFinish }) {
           {(phase === 'boom' || phase === 'promise') && (
             <Fireworks
               active
-              intensity={phase === 'boom' ? 3.2 : 1.1}
+              intensity={
+                phase === 'boom'
+                  ? (IS_LOW_POWER ? 1.4 : IS_MOBILE ? 2.0 : 3.2)
+                  : (IS_LOW_POWER ? 0.5 : 1.1)
+              }
               duration={null}
               bgColor={null}
             />
