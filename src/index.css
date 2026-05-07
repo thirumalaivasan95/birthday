@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  background: #1a0b14;
+  color: #fff5f7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #1a0b14;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #e6336b, #b8893f);
+  border-radius: 10px;
+}
+
+/* Selection */
+::selection {
+  background: #e6336b;
+  color: #fff;
+}
+
+/* Reusable utility classes */
+@layer components {
+  .container-romance {
+    @apply mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-12;
+  }
+
+  .heading-script {
+    @apply font-script text-rose-400;
+  }
+
+  .heading-serif {
+    @apply font-serif tracking-tight text-cream-50;
+  }
+
+  .text-gradient-rose {
+    background: linear-gradient(135deg, #fff5f7 0%, #f9a8c4 35%, #e6336b 70%, #d4a45c 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  .glass-card {
+    @apply rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl;
+  }
+
+  .glow-ring {
+    box-shadow:
+      0 0 0 1px rgba(255, 228, 236, 0.12),
+      0 30px 80px -30px rgba(230, 51, 107, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .shimmer-text {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 245, 247, 0.6) 0%,
+      rgba(255, 245, 247, 1) 50%,
+      rgba(255, 245, 247, 0.6) 100%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 3.5s linear infinite;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

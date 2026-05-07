@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun --version)",
+      "Bash(npm --version)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "PowerShell(Get-ChildItem \"c:\\\\Users\\\\thiru\\\\Downloads\\\\Project\\\\birthday\\\\node_modules\\\\@rollup\" -Force | ForEach-Object { $_.Name }; Write-Output \"---\"; Test-Path \"c:\\\\Users\\\\thiru\\\\Downloads\\\\Project\\\\birthday\\\\node_modules\\\\@rollup\\\\rollup-win32-x64-msvc\")"
+    ]
+  }
+}
