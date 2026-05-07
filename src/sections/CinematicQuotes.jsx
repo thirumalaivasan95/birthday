@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import { nonScanPhotos, objectPosition } from '../data/photos.js'
+import SmartPhoto from '../components/SmartPhoto.jsx'
+import { nonScanPhotos } from '../data/photos.js'
 import { pickRandom } from '../utils/shuffle.js'
 
 const SCRIPTS = [
@@ -62,13 +63,17 @@ function Scene({ scene, index }) {
       className="relative h-[110vh] w-full overflow-hidden"
       style={{ marginTop: index === 0 ? 0 : '-1px' }}
     >
-      <motion.img
-        src={scene.photo.src}
-        alt=""
-        loading="lazy"
-        style={{ y, scale, objectPosition: objectPosition(scene.photo) }}
-        className="absolute inset-0 h-full w-full object-cover"
-      />
+      <motion.div style={{ y, scale }} className="absolute inset-0">
+        <SmartPhoto
+          src={scene.photo.src}
+          srcSet={scene.photo.srcSet}
+          sizes="100vw"
+          alt=""
+          fit="cover"
+          focusY={scene.photo.focusY}
+          className="h-full w-full"
+        />
+      </motion.div>
 
       <motion.div style={{ opacity: overlayOpacity }} className="absolute inset-0 bg-ink-900" />
 

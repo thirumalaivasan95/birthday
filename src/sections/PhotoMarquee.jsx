@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import LiquidBlob from '../components/LiquidBlob.jsx'
-import { nonScanPhotos, objectPosition } from '../data/photos.js'
+import SmartPhoto from '../components/SmartPhoto.jsx'
+import { nonScanPhotos } from '../data/photos.js'
 import { shuffle } from '../utils/shuffle.js'
 
 export default function PhotoMarquee() {
@@ -54,12 +55,15 @@ function Row({ items, duration = 60, reverse = false }) {
             key={`${p.src}-${i}`}
             className="relative h-44 w-72 shrink-0 overflow-hidden rounded-2xl border border-white/10 shadow-[0_30px_60px_-30px_rgba(0,0,0,0.6)] sm:h-56 sm:w-80"
           >
-            <img
+            <SmartPhoto
               src={p.src}
+              srcSet={p.srcSet}
+              sizes="320px"
               alt=""
-              loading="lazy"
-              className="h-full w-full object-cover transition duration-700 hover:scale-105"
-              style={{ objectPosition: objectPosition(p) }}
+              fit="cover"
+              focusY={p.focusY}
+              className="h-full w-full"
+              imgClassName="transition duration-700 hover:scale-105"
             />
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-900/80 via-transparent to-transparent" />
             <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 px-4 pb-3 font-script text-base text-cream-50">

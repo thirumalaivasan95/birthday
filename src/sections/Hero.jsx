@@ -1,7 +1,8 @@
 import { useMemo, useRef } from 'react'
 import { motion, useScroll, useTransform, useSpring, useMotionValue } from 'framer-motion'
 import LiquidBlob from '../components/LiquidBlob.jsx'
-import { nonScanPhotos, objectPosition } from '../data/photos.js'
+import SmartPhoto from '../components/SmartPhoto.jsx'
+import { nonScanPhotos } from '../data/photos.js'
 import { pickRandom } from '../utils/shuffle.js'
 
 const heroWords = ['Forever', 'You', '&', 'Me']
@@ -40,12 +41,15 @@ export default function Hero() {
       className="relative h-[110vh] w-full overflow-hidden"
     >
       <motion.div style={{ y: yBg, scale: scaleBg, opacity: opacityBg }} className="absolute inset-0">
-        <img
+        <SmartPhoto
           src={heroPhoto.src}
+          srcSet={heroPhoto.srcSet}
+          sizes="100vw"
           alt=""
-          className="h-full w-full object-cover"
-          style={{ objectPosition: objectPosition(heroPhoto) }}
-          fetchPriority="high"
+          fit="cover"
+          focusY={heroPhoto.focusY}
+          eager
+          className="h-full w-full"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-ink-900/30 via-ink-900/55 to-ink-900" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_25%,rgba(0,0,0,0.65)_85%)]" />

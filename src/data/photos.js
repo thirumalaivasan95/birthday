@@ -17,10 +17,20 @@
 // To add a new image: drop the file in /public/images, restart `npm run dev`.
 // To add a curated caption: extend `curated` below.
 
-import { imageManifest } from './imageManifest.js'
+import { imageManifest, optimizedSet, responsiveWidths } from './imageManifest.js'
 import { hashCode } from '../utils/shuffle.js'
 
 const base = '/images'
+const optBase = '/images-opt'
+
+function buildSrcSet(file) {
+  if (!optimizedSet.has(file)) return undefined
+  const dot = file.lastIndexOf('.')
+  const name = file.slice(0, dot)
+  return responsiveWidths
+    .map((w) => `${optBase}/${name}-${w}.webp ${w}w`)
+    .join(', ')
+}
 
 // Files that must be treated as "the scan" (ultrasound) — never appear in
 // the random slideshow; reserved for the dedicated ScanReveal section.
@@ -133,6 +143,7 @@ export const photos = imageManifest.map((file) => {
   return {
     file,
     src: `${base}/${file}`,
+    srcSet: buildSrcSet(file),
     caption: c.caption || captionFromPool,
     chapter: c.chapter || 'everyday',
     focusY: typeof c.focusY === 'number' ? c.focusY : 28,

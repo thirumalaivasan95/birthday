@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import HeartsAndBirds from '../components/HeartsAndBirds.jsx'
 import LiquidBlob from '../components/LiquidBlob.jsx'
-import { nonScanPhotos, objectPosition } from '../data/photos.js'
+import SmartPhoto from '../components/SmartPhoto.jsx'
+import { nonScanPhotos } from '../data/photos.js'
 import { shuffle } from '../utils/shuffle.js'
 
 const FRAME_MS = 4500
@@ -87,31 +88,26 @@ export default function AllMemoriesSlideshow() {
           <AnimatePresence mode="popLayout">
             <motion.div
               key={current.src}
-              initial={{ opacity: 0, scale: 1.18, filter: 'blur(20px)', rotate: -1 }}
-              animate={{ opacity: 1, scale: 1.04, filter: 'blur(0px)', rotate: 0 }}
-              exit={{ opacity: 0, scale: 1, filter: 'blur(8px)', rotate: 1 }}
-              transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0, scale: 1.05, filter: 'blur(20px)' }}
+              animate={{ opacity: 1, scale: 1.0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, scale: 0.97, filter: 'blur(8px)' }}
+              transition={{ duration: 1.0, ease: [0.22, 1, 0.36, 1] }}
               className="absolute inset-0"
             >
-              <img
+              {/* SmartPhoto with fit='contain' guarantees no faces are cropped */}
+              <SmartPhoto
                 src={current.src}
+                srcSet={current.srcSet}
+                sizes="(max-width: 640px) 100vw, 1200px"
                 alt=""
-                className="h-full w-full object-cover"
-                style={{ objectPosition: objectPosition(current) }}
-                fetchPriority="high"
-              />
-              <motion.div
-                key={`zoom-${index}`}
-                initial={{ scale: 1 }}
-                animate={{ scale: 1.08 }}
-                transition={{ duration: FRAME_MS / 1000, ease: 'linear' }}
-                className="absolute inset-0"
+                fit="contain"
+                eager
+                className="h-full w-full"
               />
             </motion.div>
           </AnimatePresence>
 
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-900 via-ink-900/35 to-transparent" />
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.55)_100%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-900/85 via-transparent to-transparent" />
 
           <HeartsAndBirds density={0.5} corners hearts butterflies sparkles birds={false} />
 
@@ -125,7 +121,7 @@ export default function AllMemoriesSlideshow() {
                   exit={{ y: -10, opacity: 0, filter: 'blur(6px)' }}
                   transition={{ duration: 0.7 }}
                   className="font-script text-2xl text-cream-50 sm:text-5xl"
-                  style={{ textShadow: '0 4px 30px rgba(0,0,0,0.5)' }}
+                  style={{ textShadow: '0 4px 30px rgba(0,0,0,0.65)' }}
                 >
                   {current.caption}
                 </motion.p>

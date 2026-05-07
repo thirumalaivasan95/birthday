@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import LiquidBlob from '../components/LiquidBlob.jsx'
-import { nonScanPhotos, objectPosition } from '../data/photos.js'
+import SmartPhoto from '../components/SmartPhoto.jsx'
+import { nonScanPhotos } from '../data/photos.js'
 import { pickRandom } from '../utils/shuffle.js'
 
 const SLIDE_COUNT = 15
@@ -48,29 +49,27 @@ export default function MemoryCarousel() {
       <div ref={containerRef} className="container-romance relative mt-14" style={{ perspective: 1400 }}>
         <div className="relative mx-auto aspect-[4/5] w-full max-w-5xl overflow-hidden rounded-[2rem] border border-white/10 shadow-[0_60px_160px_-40px_rgba(230,51,107,0.55)] sm:aspect-[16/10]">
           <AnimatePresence mode="popLayout">
-            <motion.img
+            <motion.div
               key={current.src}
-              src={current.src}
-              alt=""
-              initial={{ opacity: 0, scale: 1.15, filter: 'blur(20px)' }}
-              animate={{ opacity: 1, scale: 1.05, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, scale: 1.0, filter: 'blur(8px)' }}
-              transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute inset-0 h-full w-full object-cover"
-              style={{ objectPosition: objectPosition(current) }}
-            />
+              initial={{ opacity: 0, scale: 1.05, filter: 'blur(20px)' }}
+              animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, scale: 0.97, filter: 'blur(8px)' }}
+              transition={{ duration: 1.0, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute inset-0"
+            >
+              <SmartPhoto
+                src={current.src}
+                srcSet={current.srcSet}
+                sizes="(max-width: 640px) 100vw, 1024px"
+                alt=""
+                fit="contain"
+                eager
+                className="h-full w-full"
+              />
+            </motion.div>
           </AnimatePresence>
 
-          <motion.div
-            key={`zoom-${index}`}
-            initial={{ scale: 1 }}
-            animate={{ scale: 1.08 }}
-            transition={{ duration: AUTOPLAY_MS / 1000, ease: 'linear' }}
-            className="pointer-events-none absolute inset-0"
-          />
-
-          <div className="absolute inset-0 bg-gradient-to-t from-ink-900 via-ink-900/40 to-transparent" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.55)_100%)]" />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink-900 via-ink-900/30 to-transparent" />
 
           <div className="absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-4 p-5 sm:gap-6 sm:p-10">
             <div className="max-w-[70%]">
@@ -82,6 +81,7 @@ export default function MemoryCarousel() {
                   exit={{ y: -10, opacity: 0 }}
                   transition={{ duration: 0.6 }}
                   className="font-script text-2xl text-cream-50 sm:text-5xl"
+                  style={{ textShadow: '0 4px 30px rgba(0,0,0,0.65)' }}
                 >
                   {current.caption}
                 </motion.p>
@@ -122,7 +122,7 @@ export default function MemoryCarousel() {
                 src={s.src}
                 alt=""
                 className="h-full w-full object-cover"
-                style={{ objectPosition: objectPosition(s) }}
+                style={{ objectPosition: `center ${s.focusY}%` }}
                 loading="lazy"
               />
             </button>

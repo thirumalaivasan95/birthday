@@ -4,9 +4,10 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        serif: ['"Cormorant Garamond"', 'serif'],
-        script: ['"Dancing Script"', 'cursive'],
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        serif:  ['"Cormorant Garamond"', '"Noto Serif Tamil"', 'serif'],
+        script: ['"Dancing Script"', '"Noto Serif Tamil"', 'cursive'],
+        sans:   ['Inter', '"Catamaran"', '"Noto Serif Tamil"', 'system-ui', 'sans-serif'],
+        tamil:  ['"Noto Serif Tamil"', '"Catamaran"', 'serif'],
       },
       colors: {
         rose: {

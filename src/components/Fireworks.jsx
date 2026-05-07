@@ -228,10 +228,24 @@ export default function Fireworks({
         const spawnInterval = 1000 / intensity
         if (now - lastSpawn > spawnInterval + rand(-150, 150)) {
           lastSpawn = now
-          const x = w * rand(0.12, 0.88)
-          const targetY = h * rand(0.12, 0.42)
+          // Spread across the whole sky — left to right, top to two-thirds down.
+          const x = w * rand(0.04, 0.96)
+          const targetY = h * rand(0.06, 0.62)
           const hue = pick(PALETTES_HUE)
           rockets.push(new Rocket(x, targetY, hue, h))
+
+          // Occasionally spawn a SECOND rocket nearby for cluster bursts —
+          // makes the sky feel alive end-to-end.
+          if (Math.random() < 0.35) {
+            rockets.push(
+              new Rocket(
+                Math.min(w * 0.96, Math.max(w * 0.04, x + rand(-w * 0.18, w * 0.18))),
+                h * rand(0.06, 0.55),
+                pick(PALETTES_HUE),
+                h,
+              ),
+            )
+          }
         }
       }
 

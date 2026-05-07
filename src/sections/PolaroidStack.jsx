@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import LiquidBlob from '../components/LiquidBlob.jsx'
-import { nonScanPhotos, objectPosition } from '../data/photos.js'
+import SmartPhoto from '../components/SmartPhoto.jsx'
+import { nonScanPhotos } from '../data/photos.js'
 import { pickRandom } from '../utils/shuffle.js'
 
 const STACK_SIZE = 8
@@ -95,12 +96,13 @@ function Polaroid({ photo, top }) {
       className="relative h-full w-full overflow-hidden rounded-[1.25rem] bg-cream-50 p-3 pb-14 shadow-[0_40px_80px_-25px_rgba(0,0,0,0.65)]"
     >
       <div className="relative h-[78%] w-full overflow-hidden rounded-[0.75rem] bg-ink-800">
-        <img
+        <SmartPhoto
           src={photo.src}
+          srcSet={photo.srcSet}
+          sizes="(max-width: 640px) 80vw, 320px"
           alt=""
-          loading="lazy"
-          className="h-full w-full object-cover"
-          style={{ objectPosition: objectPosition(photo) }}
+          fit="contain"
+          className="h-full w-full"
         />
       </div>
       <figcaption className="absolute inset-x-0 bottom-3 px-4 text-center font-script text-xl text-ink-900 sm:text-2xl">

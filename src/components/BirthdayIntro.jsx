@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Fireworks from './Fireworks.jsx'
 import HeartsAndBirds from './HeartsAndBirds.jsx'
+import NightSky, { Moon } from './NightSky.jsx'
 
 // Phases (sequential):
 //   3 → 2 → 1 → boom (Happy Birthday + fireworks) → promise (manual dismiss)
@@ -10,7 +11,10 @@ import HeartsAndBirds from './HeartsAndBirds.jsx'
 // auto-dismisses — the user must tap "Open your gift". Each promise message
 // stays on screen for 8s so it can be read in full.
 
-const COUNTDOWN_MS = 1300
+// Each digit gets a comfortable 2.0s on screen — long enough to read,
+// short enough to keep momentum. Combined with the 0.5s exit, the user
+// reliably sees all of 3 → 2 → 1 without any digit being skipped.
+const COUNTDOWN_MS = 2000
 const BOOM_MS = 5500
 const PROMISE_MS = 8000  // each promise message visible this long
 
@@ -55,21 +59,36 @@ export default function BirthdayIntro({ onFinish }) {
           exit={{ opacity: 0, transition: { duration: 1.4, ease: 'easeInOut' } }}
           className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-ink-900"
         >
-          {/* Soft gradient backdrop */}
-          <div className="absolute inset-0 bg-gradient-to-br from-ink-900 via-rose-900/40 to-ink-900" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(230,51,107,0.25)_0%,transparent_60%)]" />
+          {/* Layer 1 — night sky backdrop: deep space gradient, stars,
+              and shooting stars. Moon is intentionally OFF here so we can
+              re-render it above the fireworks canvas (otherwise the canvas
+              motion-blur would paint over it). */}
+          <NightSky withMoon={false} withShootingStars starCount={140} />
 
-          {/* Always-on twinkles */}
+          {/* Soft warming overlay — keeps it romantic, not cold */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(230,51,107,0.14)_0%,transparent_65%)]" />
+
+          {/* Layer 2 — hearts / butterflies / sparkles */}
           <HeartsAndBirds density={0.7} hearts butterflies sparkles birds={false} />
 
-          {/* Realistic fireworks during boom + promise */}
+          {/* Layer 3 — realistic fireworks during boom + promise.
+              bgColor is null so the canvas doesn't paint over the moon /
+              stars beneath. Particle trails still work via each particle's
+              own trail array. */}
           {(phase === 'boom' || phase === 'promise') && (
             <Fireworks
               active
-              intensity={phase === 'boom' ? 3 : 0.9}
-              duration={null /* keep dripping during the promise so the sky stays alive */}
+              intensity={phase === 'boom' ? 3.2 : 1.1}
+              duration={null}
+              bgColor={null}
             />
           )}
+
+          {/* Layer 4 — the moon ALWAYS sits above everything else, so it
+              stays visible no matter what the fireworks paint. */}
+          <div className="pointer-events-none absolute inset-0 z-[5]">
+            <Moon />
+          </div>
 
           {/* Skip — emergency exit only */}
           <button
@@ -93,33 +112,52 @@ export default function BirthdayIntro({ onFinish }) {
   )
 }
 
+const COUNTDOWN_SUBTITLES = {
+  '3': 'almost there, my love…',
+  '2': 'Jee Bhoommmm',
+  '1': 'bhaaaaaaaa',
+}
+
 function Countdown({ n }) {
   return (
     <motion.div
-      initial={{ scale: 0.4, opacity: 0, filter: 'blur(20px)' }}
+      initial={{ scale: 0.55, opacity: 0, filter: 'blur(14px)' }}
       animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
-      exit={{ scale: 6, opacity: 0, filter: 'blur(20px)' }}
-      transition={{ duration: 1.0, ease: [0.22, 1, 0.36, 1] }}
-      className="relative z-10 text-center"
+      exit={{ scale: 1.6, opacity: 0, filter: 'blur(14px)' }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      className="relative z-10 flex w-full max-w-full flex-col items-center justify-center gap-6 px-6 text-center"
     >
+      {/* The digit. Generous padding + line-height keeps swashes from being
+          clipped at the top/bottom on any viewport. */}
       <motion.span
-        animate={{ scale: [1, 1.05, 1] }}
-        transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
-        className="block font-serif text-[18rem] leading-none text-gradient-rose sm:text-[24rem]"
+        key={`digit-${n}`}
+        initial={{ scale: 0.85 }}
+        animate={{ scale: [0.95, 1.04, 1] }}
+        transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+        className="block font-serif text-gradient-rose"
         style={{
+          fontSize: 'clamp(7rem, 34vw, 20rem)',
+          lineHeight: 1.1,
+          paddingBlock: '0.1em',
           textShadow:
-            '0 0 80px rgba(230,51,107,0.65), 0 0 200px rgba(212,164,92,0.35)',
+            '0 0 60px rgba(230,51,107,0.7), 0 0 140px rgba(212,164,92,0.35)',
         }}
       >
         {n}
       </motion.span>
+      {/* The per-phase subtitle */}
       <motion.span
-        initial={{ opacity: 0, y: 10 }}
+        key={`sub-${n}`}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2, duration: 0.6 }}
-        className="mt-4 inline-block font-script text-2xl text-rose-300"
+        transition={{ delay: 0.2, duration: 0.5 }}
+        className="inline-block font-script text-rose-300"
+        style={{
+          fontSize: 'clamp(1.5rem, 5vw, 2.5rem)',
+          textShadow: '0 0 30px rgba(230,51,107,0.45)',
+        }}
       >
-        almost there, my love…
+        {COUNTDOWN_SUBTITLES[n] || 'almost there, my love…'}
       </motion.span>
     </motion.div>
   )
@@ -134,13 +172,11 @@ function Boom() {
       transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
       className="relative z-10 px-6 text-center"
     >
-      {/* White flash on entry */}
-      <motion.div
-        initial={{ opacity: 0.9 }}
-        animate={{ opacity: 0 }}
-        transition={{ duration: 0.7, ease: 'easeOut' }}
-        className="pointer-events-none fixed inset-0 bg-white"
-      />
+      {/* Romantic entry — three radial blooms (rose, gold, soft pink) expand
+          outward in slight succession, then a love heart pulses once. No
+          harsh white flash. */}
+      <RomanticBloom />
+      <BeatingHeart />
 
       <motion.span
         initial={{ opacity: 0, y: 20 }}
@@ -155,7 +191,11 @@ function Boom() {
         initial={{ opacity: 0, scale: 0.92, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
-        className="heading-serif mt-6 text-5xl leading-[0.95] sm:text-7xl md:text-8xl"
+        className="heading-serif mt-6 text-5xl leading-[1.05] sm:text-7xl md:text-8xl"
+        style={{
+          textShadow:
+            '0 0 50px rgba(230,51,107,0.7), 0 0 120px rgba(212,164,92,0.45), 0 0 220px rgba(230,51,107,0.35)',
+        }}
       >
         <span className="text-gradient-rose">Happy Birthday</span>
       </motion.h1>
@@ -165,16 +205,30 @@ function Boom() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.2, duration: 0.8 }}
         className="mt-6 font-script text-4xl text-rose-200 sm:text-6xl"
+        style={{ textShadow: '0 0 35px rgba(230,51,107,0.55)' }}
       >
         my dear Meena <span className="inline-block">💖</span>
       </motion.p>
 
+      {/* Tamil — needs Noto Serif Tamil to actually render the glyphs.
+          Same gradient + halo treatment as the English line above. */}
       <motion.p
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.7, duration: 0.8 }}
-        className="mt-3 font-script text-3xl text-cream-50/95 sm:text-5xl"
-        style={{ textShadow: '0 0 40px rgba(230,51,107,0.45)' }}
+        className="mt-4 font-tamil text-3xl font-semibold leading-[1.3] sm:text-5xl md:text-6xl"
+        style={{
+          background:
+            'linear-gradient(135deg, #fff5f7 0%, #f9a8c4 35%, #e6336b 70%, #d4a45c 100%)',
+          WebkitBackgroundClip: 'text',
+          backgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          color: 'transparent',
+          textShadow:
+            '0 0 40px rgba(230,51,107,0.65), 0 0 100px rgba(212,164,92,0.4)',
+          filter:
+            'drop-shadow(0 0 10px rgba(230,51,107,0.35)) drop-shadow(0 0 24px rgba(212,164,92,0.25))',
+        }}
       >
         குட்டி பாப்பா
       </motion.p>
@@ -185,6 +239,97 @@ function Boom() {
         transition={{ delay: 2.4, duration: 1 }}
         className="mx-auto mt-10 h-px w-40 bg-gradient-to-r from-transparent via-rose-300 to-transparent"
       />
+    </motion.div>
+  )
+}
+
+// Romantic entry — three radial blooms in succession (rose, gold, soft pink)
+// expanding to fill the screen, plus a tender vignette warm-up. Replaces the
+// harsh white flash with a warm, candle-glow feel.
+function RomanticBloom() {
+  return (
+    <div className="pointer-events-none fixed inset-0 z-[5]">
+      {/* Soft warm wash that rises in for 0.6s and lingers */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 0.6, 0.25] }}
+        transition={{ duration: 1.6, times: [0, 0.35, 1], ease: 'easeOut' }}
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse at center, rgba(255, 220, 200, 0.85) 0%, rgba(230, 51, 107, 0.5) 35%, rgba(125, 22, 56, 0.2) 60%, transparent 85%)',
+        }}
+      />
+      {/* Three expanding rings — like dropping a stone in a pond of light */}
+      {[0, 0.18, 0.36].map((delay, i) => (
+        <motion.div
+          key={i}
+          initial={{ scale: 0, opacity: 0.85 }}
+          animate={{ scale: 5, opacity: 0 }}
+          transition={{
+            duration: 1.6,
+            delay,
+            ease: [0.22, 1, 0.36, 1],
+          }}
+          className="absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{
+            background: i === 1
+              ? 'radial-gradient(circle, rgba(212,164,92,0.55) 0%, rgba(212,164,92,0.0) 60%)'
+              : 'radial-gradient(circle, rgba(255,180,200,0.55) 0%, rgba(230,51,107,0) 60%)',
+            filter: 'blur(8px)',
+          }}
+        />
+      ))}
+      {/* A subtle global brighten that fades — replaces the cold white flash
+          with a warm honeyed lift */}
+      <motion.div
+        initial={{ opacity: 0.55 }}
+        animate={{ opacity: 0 }}
+        transition={{ duration: 1.0, ease: 'easeOut' }}
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse at center, rgba(255, 244, 220, 0.5) 0%, rgba(230, 51, 107, 0.15) 50%, transparent 90%)',
+        }}
+      />
+    </div>
+  )
+}
+
+// A single love-heart that pulses once on entry, behind the title.
+function BeatingHeart() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.4 }}
+      animate={{
+        opacity: [0, 0.85, 0.55, 0.7, 0.45, 0],
+        scale: [0.4, 1.15, 0.95, 1.1, 0.95, 1.6],
+      }}
+      transition={{ duration: 2.6, times: [0, 0.18, 0.32, 0.5, 0.65, 1], ease: 'easeOut' }}
+      className="pointer-events-none fixed left-1/2 top-1/2 z-[6] -translate-x-1/2 -translate-y-1/2"
+      aria-hidden
+    >
+      <svg
+        viewBox="0 0 24 24"
+        className="h-64 w-64 sm:h-96 sm:w-96"
+        style={{
+          filter:
+            'drop-shadow(0 0 50px rgba(230,51,107,0.85)) drop-shadow(0 0 120px rgba(230,51,107,0.55))',
+        }}
+      >
+        <defs>
+          <radialGradient id="heart-grad" cx="40%" cy="35%" r="70%">
+            <stop offset="0%" stopColor="#ffe4ec" />
+            <stop offset="40%" stopColor="#f472a6" />
+            <stop offset="80%" stopColor="#e6336b" />
+            <stop offset="100%" stopColor="#a21946" />
+          </radialGradient>
+        </defs>
+        <path
+          d="M12 21s-7.5-4.7-9.7-9.3C.6 7.6 3.1 4 6.6 4c2 0 3.5 1.1 4.4 2.6h2c.9-1.5 2.4-2.6 4.4-2.6 3.5 0 6 3.6 4.3 7.7C19.5 16.3 12 21 12 21z"
+          fill="url(#heart-grad)"
+        />
+      </svg>
     </motion.div>
   )
 }

@@ -11,16 +11,71 @@ const HeartIcon = (props) => (
   </svg>
 )
 
-const BirdIcon = (props) => (
-  // simple "M-shaped" silhouette — a flying bird at distance
-  <svg viewBox="0 0 64 24" {...props}>
+// A proper love-bird with body, head, beak, eye, tail, and two wings that
+// flap independently (upstroke + downstroke). Pure SVG — no images, no CSS
+// classes — so it works inline anywhere with zero network cost (GPRS-safe).
+//
+// `flapDuration` (seconds) sets the wing-beat rate. Smaller birds in real
+// life flap faster, so callers can pass a faster rate for tiny birds.
+const BirdIcon = ({ color = 'currentColor', flapDuration = 0.55, ...props }) => (
+  <svg viewBox="0 0 60 36" {...props}>
+    {/* Tail */}
+    <polygon points="22,18 16,15 16,22" fill={color} />
+    {/* Body */}
+    <ellipse cx="30" cy="18" rx="6.5" ry="3.2" fill={color} />
+    {/* Head */}
+    <circle cx="36.2" cy="16" r="2.6" fill={color} />
+    {/* Beak */}
+    <polygon points="38.8,15.4 42.5,16.5 38.8,17.6" fill="#d4a45c" />
+    {/* Eye */}
+    <circle cx="36.6" cy="15.4" r="0.45" fill="#1a0b14" />
+
+    {/* Upper wing — rotates up then back down for the flap.
+        transform-origin is the bird's shoulder. */}
     <path
-      d="M2 16 C 10 4, 18 4, 24 14 C 30 24, 34 24, 40 14 C 46 4, 54 4, 62 16"
-      fill="none"
-      strokeWidth="2.4"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
+      d="M30 17 Q 22 6 8 11 Q 22 14 30 17 Z"
+      fill={color}
+      opacity="0.9"
+    >
+      <animateTransform
+        attributeName="transform"
+        type="rotate"
+        values="0 30 17; -28 30 17; 0 30 17"
+        keyTimes="0;0.5;1"
+        dur={`${flapDuration}s`}
+        repeatCount="indefinite"
+      />
+    </path>
+
+    {/* Lower wing — opposite phase, slightly more transparent for depth. */}
+    <path
+      d="M30 19 Q 22 30 8 25 Q 22 22 30 19 Z"
+      fill={color}
+      opacity="0.6"
+    >
+      <animateTransform
+        attributeName="transform"
+        type="rotate"
+        values="0 30 19; 22 30 19; 0 30 19"
+        keyTimes="0;0.5;1"
+        dur={`${flapDuration}s`}
+        repeatCount="indefinite"
+      />
+    </path>
+
+    {/* A tiny floating heart trailing behind, because love-birds. */}
+    <path
+      d="M16 8 c-0.5,-0.7 -1.6,-0.7 -2.1,0 c-0.5,-0.7 -1.6,-0.7 -2.1,0 c-0.7,0.9 0.4,2.1 2.1,3.1 c1.7,-1 2.8,-2.2 2.1,-3.1 z"
+      fill="#e6336b"
+      opacity="0.85"
+    >
+      <animate
+        attributeName="opacity"
+        values="0;0.85;0"
+        dur="2.4s"
+        repeatCount="indefinite"
+      />
+    </path>
   </svg>
 )
 
@@ -86,16 +141,29 @@ export default function HeartsAndBirds({
     }
 
     if (birds) {
-      const n = Math.round(4 * density)
+      const n = Math.round(5 * density)
       for (let i = 0; i < n; i++) {
-        place('bird', () => ({
-          size: rand(28, 48),
-          color: 'rgba(255, 245, 247, 0.55)',
-          duration: rand(18, 30),
-          delay: rand(0, 10),
-          opacity: rand(0.4, 0.7),
-          fromLeft: Math.random() > 0.5,
-        }))
+        place('bird', () => {
+          const size = rand(26, 52)
+          // Smaller birds flap faster, like in real life.
+          const flapDuration = (size / 60) * rand(0.4, 0.7)
+          return {
+            size,
+            color: ['rgba(255, 245, 247, 0.6)', 'rgba(255, 220, 230, 0.55)', 'rgba(212, 164, 92, 0.5)'][
+              Math.floor(Math.random() * 3)
+            ],
+            duration: rand(20, 36),
+            delay: rand(0, 14),
+            opacity: rand(0.45, 0.78),
+            // Random vertical band for the flight (top portion of viewport)
+            band: rand(8, 65),
+            // Sine-wave amplitude + period for a natural undulating glide
+            amplitude: rand(20, 70),
+            waves: rand(2, 4),
+            fromLeft: Math.random() > 0.5,
+            flapDuration,
+          }
+        })
       }
     }
 
@@ -173,18 +241,38 @@ export default function HeartsAndBirds({
         }
 
         if (it.type === 'bird') {
-          // Birds glide across the screen
+          // Build sine-wave keyframes so the bird undulates naturally
+          // instead of just gliding in a straight line. Banking rotation
+          // matches the dive/climb so it feels like a real flight path.
+          const STEPS = 24
+          const ys = []
+          const rotates = []
+          for (let k = 0; k <= STEPS; k++) {
+            const t = k / STEPS
+            const phase = t * it.waves * Math.PI * 2
+            ys.push(Math.sin(phase) * it.amplitude)
+            // Bank with the direction of travel: derivative of sin = cos
+            rotates.push(Math.cos(phase) * 12 * (it.fromLeft ? 1 : -1))
+          }
+          // Override the per-item top with the bird's flight band so birds
+          // spread across the upper sky.
+          const birdStyle = {
+            top: `${it.band}%`,
+            left: 0,
+            width: it.size * 1.6,
+            height: it.size,
+          }
           return (
             <motion.span
               key={it.id}
               initial={{
-                x: it.fromLeft ? '-30vw' : '30vw',
-                y: 0,
+                x: it.fromLeft ? '-15vw' : '115vw',
                 opacity: 0,
               }}
               animate={{
-                x: it.fromLeft ? '110vw' : '-110vw',
-                y: [0, -20, 10, -10, 0],
+                x: it.fromLeft ? '115vw' : '-15vw',
+                y: ys,
+                rotate: it.fromLeft ? rotates : rotates.map((r) => -r),
                 opacity: [0, it.opacity, it.opacity, 0],
               }}
               transition={{
@@ -192,16 +280,21 @@ export default function HeartsAndBirds({
                 delay: it.delay,
                 repeat: Infinity,
                 ease: 'linear',
-                times: [0, 0.1, 0.9, 1],
+                opacity: { times: [0, 0.08, 0.92, 1] },
               }}
               className="absolute"
-              style={{ ...style, width: it.size * 2 }}
+              style={birdStyle}
             >
               <BirdIcon
-                width={it.size * 2}
-                height={it.size * 0.75}
-                stroke={it.color}
-                fill="transparent"
+                width={it.size * 1.6}
+                height={it.size}
+                color={it.color}
+                flapDuration={it.flapDuration}
+                style={{
+                  // Mirror horizontally when flying right→left
+                  transform: it.fromLeft ? 'none' : 'scaleX(-1)',
+                  filter: `drop-shadow(0 0 6px ${it.color})`,
+                }}
               />
             </motion.span>
           )

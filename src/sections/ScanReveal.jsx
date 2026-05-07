@@ -2,7 +2,8 @@ import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import LiquidBlob from '../components/LiquidBlob.jsx'
 import HeartsAndBirds from '../components/HeartsAndBirds.jsx'
-import { photos, objectPosition } from '../data/photos.js'
+import SmartPhoto from '../components/SmartPhoto.jsx'
+import { photos } from '../data/photos.js'
 
 const scan = photos.find((p) => p.isScan)
 
@@ -154,14 +155,17 @@ export default function ScanReveal() {
 
             {/* The scan */}
             <motion.figure
-              style={{ scale: scaleImg }}
+              style={{ scale: scaleImg, aspectRatio: '4 / 5' }}
               className="relative overflow-hidden rounded-[2.5rem] border border-white/15 shadow-[0_60px_180px_-30px_rgba(230,51,107,0.65)]"
             >
-              <img
+              <SmartPhoto
                 src={scan.src}
+                srcSet={scan.srcSet}
+                sizes="(max-width: 1024px) 90vw, 600px"
                 alt="our little one"
-                className="h-full w-full object-cover"
-                style={{ aspectRatio: '4 / 5', objectPosition: objectPosition(scan) }}
+                fit="contain"
+                eager
+                className="absolute inset-0 h-full w-full"
               />
               {/* Subtle inner glow */}
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.55)_100%)]" />
