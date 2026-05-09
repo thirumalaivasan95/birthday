@@ -189,7 +189,7 @@ export default function HeartsAndBirds({
       // Doves drift across the section from off-screen to off-screen
       // (NEVER stuck in a loop inside the frame). 2–4 in flight at any
       // moment, with staggered delays so a fresh one keeps appearing.
-      const baseN = IS_MOBILE ? 3 : 4
+      const baseN = IS_MOBILE ? 4 : 4
       const n = Math.max(2, Math.round(baseN * density))
       for (let i = 0; i < n; i++) {
         const size = rand(30, 48)
@@ -243,7 +243,7 @@ export default function HeartsAndBirds({
 
     // Tiny love birds — small, colorful, flit around randomly
     if (lovebirds && !IS_LOW_POWER) {
-      const n = IS_MOBILE ? Math.round(3 * density) : Math.round(6 * density)
+      const n = IS_MOBILE ? Math.round(6 * density) : Math.round(6 * density)
       for (let i = 0; i < n; i++) {
         // Random wandering path — 6 waypoints in a gentle loop
         const cx = rand(10, 90)

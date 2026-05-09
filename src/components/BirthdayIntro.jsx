@@ -67,8 +67,8 @@ export default function BirthdayIntro({ onFinish }) {
           <NightSky
             withMoon={false}
             withShootingStars={!IS_LOW_POWER}
-            starCount={IS_LOW_POWER ? 40 : IS_MOBILE ? 70 : 140}
-            cloudCount={IS_LOW_POWER ? 4 : IS_MOBILE ? 7 : 11}
+            starCount={IS_LOW_POWER ? 50 : IS_MOBILE ? 140 : 140}
+            cloudCount={IS_LOW_POWER ? 5 : IS_MOBILE ? 11 : 11}
           />
 
           {/* Soft warming overlay — keeps it romantic, not cold */}
@@ -76,7 +76,7 @@ export default function BirthdayIntro({ onFinish }) {
 
           {/* Layer 2 — hearts / butterflies / sparkles */}
           <HeartsAndBirds
-            density={IS_LOW_POWER ? 0.25 : IS_MOBILE ? 0.45 : 0.7}
+            density={IS_LOW_POWER ? 0.35 : IS_MOBILE ? 0.7 : 0.7}
             hearts
             butterflies={!IS_LOW_POWER}
             sparkles
@@ -94,7 +94,7 @@ export default function BirthdayIntro({ onFinish }) {
           {(phase === 'boom' || phase === 'promise') && (
             <Fireworks
               active
-              intensity={IS_LOW_POWER ? 1.3 : IS_MOBILE ? 2.0 : 3.2}
+              intensity={IS_LOW_POWER ? 1.3 : IS_MOBILE ? 3.2 : 3.2}
               duration={null}
               bgColor={null}
             />

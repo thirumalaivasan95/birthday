@@ -5,9 +5,9 @@ import { isMobile as IS_MOBILE, isLowPower as IS_LOW_POWER } from '../utils/devi
 // Counts halved on mobile, halved again on old iOS Safari. Each motion
 // element costs a subscription + transform-update per frame; on the SE
 // the difference between 18 hearts and 6 hearts is ~30% of the budget.
-const HEARTS      = IS_LOW_POWER ? 6  : IS_MOBILE ? 10 : 18
-const PARTICLES   = IS_LOW_POWER ? 12 : IS_MOBILE ? 20 : 36
-const BUTTERFLIES = IS_LOW_POWER ? 0  : IS_MOBILE ? 8  : 15
+const HEARTS      = IS_LOW_POWER ? 8  : IS_MOBILE ? 18 : 18
+const PARTICLES   = IS_LOW_POWER ? 16 : IS_MOBILE ? 36 : 36
+const BUTTERFLIES = IS_LOW_POWER ? 4  : IS_MOBILE ? 15 : 15
 
 function rand(min, max) {
   return Math.random() * (max - min) + min

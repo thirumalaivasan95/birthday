@@ -393,14 +393,14 @@ export default function Fireworks({
       else count = 95 + Math.floor(Math.random() * 45)
 
       if (IS_LOW_POWER) count = Math.round(count * 0.35)
-      else if (IS_MOBILE) count = Math.round(count * 0.7)
+      else if (IS_MOBILE) count = Math.round(count * 1.0)
 
       for (let i = 0; i < count; i++) {
         particles.push(new Particle(x, y, hue, type, baseSpeed))
       }
 
       // Hard cap
-      const maxParticles = IS_LOW_POWER ? 200 : IS_MOBILE ? 500 : 900
+      const maxParticles = IS_LOW_POWER ? 200 : IS_MOBILE ? 900 : 900
       if (particles.length > maxParticles) {
         particles.splice(0, particles.length - maxParticles)
       }
@@ -416,7 +416,7 @@ export default function Fireworks({
       }
 
       // Smoke embers (desktop only)
-      if (!IS_LOW_POWER && !IS_MOBILE) {
+      if (!IS_LOW_POWER) {
         const smokeCount = Math.floor(rand(4, 9))
         for (let i = 0; i < smokeCount; i++) {
           smokes.push(new Smoke(
