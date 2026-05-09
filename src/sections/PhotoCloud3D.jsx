@@ -10,21 +10,22 @@ import { isMobile as IS_MOBILE, isTouch as IS_TOUCH, isLowPower as IS_LOW_POWER 
 // No centre deck. Every card is its own swipeable element, placed at a
 // random position with a random rotation and slight size variation.
 // Swipe ANY card in ANY direction → it flies off → a fresh random photo
-// appears at a new random position. Cursor parallax adds gentle ambient
-// drift; deeper cards drift more.
+// appears at a DIFFERENT random position. Cursor parallax adds gentle
+// ambient drift; deeper cards drift more.
+//
+// Desktop: mouse drag works exactly like mobile touch — drag a card
+// far enough and it vanishes, reappearing elsewhere with a new photo.
 //
 // Why two motion layers? Drag and parallax both want to set x / y. We
 // give the OUTER layer the cursor parallax (style.x = parX) and the
 // INNER layer the drag + entry/exit animation. They don't fight.
 
-// Grid dimensions: every card lives in its own cell so the playground
-// never has empty quadrants. Cards jitter inside their cell, so it still
-// feels organic — never gridded.
-const GRID_DESKTOP = { cols: 5, rows: 3 }   // 15 slots
-const GRID_MOBILE  = { cols: 3, rows: 4 }   // 12 slots
+// Grid dimensions — more cards for a denser, richer cloud
+const GRID_DESKTOP = { cols: 6, rows: 4 }   // 24 slots
+const GRID_MOBILE  = { cols: 4, rows: 5 }   // 20 slots
 
-const SWIPE_THRESHOLD_PX = 50
-const SWIPE_THRESHOLD_VELOCITY = 260
+const SWIPE_THRESHOLD_PX = 40
+const SWIPE_THRESHOLD_VELOCITY = 200
 
 function rand(a, b) { return a + Math.random() * (b - a) }
 
@@ -32,15 +33,15 @@ function rand(a, b) { return a + Math.random() * (b - a) }
 function slotInCell(col, row, cols, rows, isMobile) {
   const cellW = 100 / cols
   const cellH = 100 / rows
-  // jitter inside ~70% of the cell so neighbours can overlap a touch
-  const jx = rand(0.10, 0.55)
-  const jy = rand(0.10, 0.55)
+  // jitter inside ~65% of the cell so neighbours can overlap a touch
+  const jx = rand(0.08, 0.58)
+  const jy = rand(0.08, 0.58)
   return {
     x: col * cellW + cellW * jx,
     y: row * cellH + cellH * jy,
-    size: isMobile ? rand(9, 12) : rand(13, 17), // rem — medium
-    rotate: rand(-14, 14),
-    depth: rand(0.45, 1.25),
+    size: isMobile ? rand(8, 11) : rand(11, 16), // rem — medium
+    rotate: rand(-16, 16),
+    depth: rand(0.4, 1.3),
   }
 }
 
@@ -73,6 +74,18 @@ function makeInitialCards(grid, isMobile) {
   return cards
 }
 
+// Pick a random cell that is NOT the current one
+function pickDifferentCell(currentCell, cols, rows) {
+  let col, row
+  let attempts = 0
+  do {
+    col = Math.floor(Math.random() * cols)
+    row = Math.floor(Math.random() * rows)
+    attempts++
+  } while (col === currentCell[0] && row === currentCell[1] && attempts < 20)
+  return [col, row]
+}
+
 export default function PhotoCloud3D() {
   const grid = IS_MOBILE ? GRID_MOBILE : GRID_DESKTOP
   const [cards, setCards] = useState(() => makeInitialCards(grid, IS_MOBILE))
@@ -102,17 +115,26 @@ export default function PhotoCloud3D() {
     myRaw.set(0)
   }
 
-  // ---- Swipe respawn (re-uses the SAME cell so the playground stays full) -
+  // ---- Swipe respawn — card reappears at a DIFFERENT random position ------
   const respawn = useCallback((id) => {
     setCards((prev) => {
       const used = new Set(prev.filter((c) => c.id !== id).map((c) => c.photo.src))
       const candidates = nonScanPhotos.filter((p) => !used.has(p.src))
-      if (candidates.length === 0) return prev
+      if (candidates.length === 0) {
+        // All photos used — just recycle from full pool
+        const fallback = nonScanPhotos[Math.floor(Math.random() * nonScanPhotos.length)]
+        return prev.map((c) => {
+          if (c.id !== id) return c
+          const newCell = pickDifferentCell(c.cell, grid.cols, grid.rows)
+          return { ...c, photo: fallback, cell: newCell, ...slotInCell(newCell[0], newCell[1], grid.cols, grid.rows, IS_MOBILE) }
+        })
+      }
       const fresh = candidates[Math.floor(Math.random() * candidates.length)]
       return prev.map((c) => {
         if (c.id !== id) return c
-        const [col, row] = c.cell
-        return { ...c, photo: fresh, ...slotInCell(col, row, grid.cols, grid.rows, IS_MOBILE) }
+        // Pick a DIFFERENT cell for the new position
+        const newCell = pickDifferentCell(c.cell, grid.cols, grid.rows)
+        return { ...c, photo: fresh, cell: newCell, ...slotInCell(newCell[0], newCell[1], grid.cols, grid.rows, IS_MOBILE) }
       })
     })
   }, [grid.cols, grid.rows])
@@ -129,6 +151,7 @@ export default function PhotoCloud3D() {
         <>
           <LiquidBlob className="absolute -left-40 top-10" size={680} from="#7d1638" to="#e6336b" opacity={0.4} />
           <LiquidBlob className="absolute -right-40 bottom-0" size={620} from="#d4a45c" to="#a21946" opacity={0.35} delay={3} />
+          <LiquidBlob className="absolute left-1/3 top-1/2" size={400} from="#e6336b" to="#d4a45c" opacity={0.2} delay={5} />
         </>
       )}
 
@@ -142,12 +165,12 @@ export default function PhotoCloud3D() {
           </span>
         </h2>
         <p className="mt-3 text-[10px] uppercase tracking-[0.4em] text-rose-200/85">
-          ✨ swipe any card any direction — a new memory takes its place ✨
+          ✨ drag any card to fling it away — a new memory appears somewhere else ✨
         </p>
       </div>
 
       {/* The playground — cards float here, scattered */}
-      <div className="relative mx-auto mt-12 h-[88vh] w-full max-w-[110rem] sm:mt-14 sm:h-[80vh]">
+      <div className="relative mx-auto mt-12 h-[100vh] w-full max-w-[120rem] sm:mt-14 sm:h-[90vh]">
         {cards.map((card) => (
           <ScatteredCard
             key={`${card.id}:${card.photo.src}`}
@@ -192,7 +215,11 @@ function ScatteredCard({ card, mx, my, onSwipe }) {
       y: yOff * 7,
       rotate: xOff > 0 ? 60 : -60,
     })
-    setTimeout(onSwipe, 380)
+    // After exit animation, respawn in a different spot
+    setTimeout(() => {
+      setExiting(null)
+      onSwipe()
+    }, 380)
   }
 
   return (
@@ -242,10 +269,13 @@ function ScatteredCard({ card, mx, my, onSwipe }) {
         dragElastic={1}
         dragMomentum={false}
         onDragEnd={handleDragEnd}
-        whileHover={{ scale: 1.06, zIndex: 50, transition: { duration: 0.2 } }}
-        whileDrag={{ scale: 1.08, zIndex: 100, transition: { duration: 0.15 } }}
+        whileHover={{ scale: 1.08, zIndex: 50, transition: { duration: 0.2 } }}
+        whileDrag={{ scale: 1.1, zIndex: 100, rotate: rotate * 0.5, transition: { duration: 0.15 } }}
       >
-        <div className="relative h-full w-full overflow-hidden rounded-[1.1rem] border border-white/15 bg-ink-900 shadow-[0_25px_60px_-20px_rgba(0,0,0,0.7),0_0_30px_-15px_rgba(230,51,107,0.5)]">
+        <div
+          className="relative h-full w-full overflow-hidden rounded-[1.1rem] border border-white/15 bg-ink-900 shadow-[0_25px_60px_-20px_rgba(0,0,0,0.7),0_0_30px_-15px_rgba(230,51,107,0.5)]"
+          onDragStart={(e) => e.preventDefault()}
+        >
           <SmartPhoto
             src={photo.src}
             srcSet={photo.srcSet}

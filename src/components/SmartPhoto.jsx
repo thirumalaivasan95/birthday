@@ -86,6 +86,8 @@ export default function SmartPhoto({
             src={src}
             alt=""
             aria-hidden
+            draggable={false}
+            onDragStart={(e) => e.preventDefault()}
             className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${loaded ? 'opacity-60' : 'opacity-0'}`}
             style={{ filter: 'blur(28px) saturate(1.2)', transform: 'scale(1.15)' }}
           />
@@ -103,6 +105,8 @@ export default function SmartPhoto({
           alt={alt}
           loading={eager ? 'eager' : 'lazy'}
           decoding="async"
+          draggable={false}
+          onDragStart={(e) => e.preventDefault()}
           fetchPriority={eager ? 'high' : 'auto'}
           onLoad={() => setLoaded(true)}
           className={`relative h-full w-full transition-opacity duration-700 ${loaded ? 'opacity-100' : 'opacity-0'} ${imgClassName}`}
