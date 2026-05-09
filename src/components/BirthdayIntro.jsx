@@ -94,11 +94,7 @@ export default function BirthdayIntro({ onFinish }) {
           {(phase === 'boom' || phase === 'promise') && (
             <Fireworks
               active
-              intensity={
-                phase === 'boom'
-                  ? (IS_LOW_POWER ? 1.3 : IS_MOBILE ? 2.0 : 3.2)
-                  : (IS_LOW_POWER ? 0.6 : 1.1)
-              }
+              intensity={IS_LOW_POWER ? 1.3 : IS_MOBILE ? 2.0 : 3.2}
               duration={null}
               bgColor={null}
             />

@@ -63,58 +63,21 @@ export default function HeartBackground() {
     [],
   )
 
-  // Realistic Butterfly Behavioral Model:
-  // - Calculates trajectory angle so it always faces forward (no flying backwards).
-  // - "Fly and Rest" pattern: Flies to a waypoint, sits/rests, then flies again.
   const butterflies = useMemo(
     () =>
-      Array.from({ length: BUTTERFLIES }, (_, i) => {
-        const left = rand(10, 90)
-        const top = rand(10, 90)
-        
-        // Generate 3 waypoints for the "Fly -> Sit -> Fly -> Sit -> Fly" behavior
-        const wp1x = rand(-20, 20); const wp1y = rand(-20, 20);
-        let ang1 = (Math.atan2(wp1y, wp1x) * 180) / Math.PI + 90;
-        
-        const wp2x = wp1x + rand(-20, 20); const wp2y = wp1y + rand(-20, 20);
-        let ang2 = (Math.atan2(wp2y - wp1y, wp2x - wp1x) * 180) / Math.PI + 90;
-        
-        const wp3x = wp2x + rand(-20, 20); const wp3y = wp2y + rand(-20, 20);
-        let ang3 = (Math.atan2(wp3y - wp2y, wp3x - wp2x) * 180) / Math.PI + 90;
-
-        // Ensure smooth rotation (no snapping 360 degrees backwards)
-        if (ang2 - ang1 > 180) ang2 -= 360;
-        if (ang2 - ang1 < -180) ang2 += 360;
-        if (ang3 - ang2 > 180) ang3 -= 360;
-        if (ang3 - ang2 < -180) ang3 += 360;
-
-        // Keyframes: 
-        // 0: Spawn
-        // 1: Arrive at WP1 (Fly)
-        // 2: Sitting at WP1, turning to face WP2
-        // 3: Arrive at WP2 (Fly)
-        // 4: Sitting at WP2, turning to face WP3
-        // 5: Arrive at WP3 and despawn (Fly)
-        const xOffsets = [0, wp1x, wp1x, wp2x, wp2x, wp3x].map(v => `${v}vw`);
-        const yOffsets = [0, wp1y, wp1y, wp2y, wp2y, wp3y].map(v => `${v}vh`);
-        const rotations = [ang1, ang1, ang2, ang2, ang3, ang3];
-        const opacities = [0, rand(0.25, 0.45), rand(0.25, 0.45), rand(0.25, 0.45), rand(0.25, 0.45), 0];
-
-        return {
-          id: i,
-          left,
-          top,
-          xOffsets,
-          yOffsets,
-          rotations,
-          opacities,
-          size: rand(10, 20),
-          color: ['#fb7185', '#fbcfe0', '#fde68a', '#e6336b', '#fda4af'][Math.floor(Math.random() * 5)],
-          flapSpeed: rand(1.0, 1.8), // Very slow, lazy natural flapping
-          duration: rand(25, 40), // Long life cycle to allow for sitting pauses
-          delay: rand(0, 15),
-        }
-      }),
+      Array.from({ length: BUTTERFLIES }, (_, i) => ({
+        id: i,
+        left: rand(0, 100),
+        size: rand(12, 28),
+        delay: rand(0, 12),
+        duration: rand(14, 30),
+        opacity: rand(0.3, 0.7), // Higher opacity for a vibrant glow
+        drift1: rand(-30, 30),
+        drift2: rand(-60, 60),
+        drift3: rand(-30, 30),
+        color: ['#fb7185', '#fbcfe0', '#fde68a', '#e6336b', '#fda4af'][Math.floor(Math.random() * 5)],
+        flapSpeed: rand(0.4, 0.9), // Faster flutter
+      })),
     [],
   )
 
@@ -191,35 +154,34 @@ export default function HeartBackground() {
         </motion.svg>
       ))}
 
-      {/* Butterflies — pure SVG, organic multi-waypoint flight path */}
+      {/* Butterflies — fluttery, glowing, upward-drifting like hearts but with unique character */}
       {!IS_LOW_POWER && butterflies.map((b) => (
         <motion.div
           key={`bf-${b.id}`}
-          initial={{ opacity: 0, x: 0, y: 0, rotate: 0 }}
+          initial={{ y: '110vh', x: 0, opacity: 0, rotate: 0 }}
           animate={{
-            x: b.xOffsets,
-            y: b.yOffsets,
-            rotate: b.rotations,
-            opacity: b.opacities,
+            y: ['110vh', '70vh', '40vh', '10vh', '-15vh'],
+            x: [0, b.drift1, b.drift2, b.drift3, 0],
+            opacity: [0, b.opacity, b.opacity * 0.6, b.opacity, 0],
+            rotate: [0, b.drift1 > 0 ? 15 : -15, b.drift2 > b.drift1 ? 25 : -25, b.drift3 > b.drift2 ? 15 : -15, 0],
           }}
           transition={{
-            duration: b.duration,
-            delay: b.delay,
-            repeat: Infinity,
-            ease: 'easeInOut',
+            y: { duration: b.duration, delay: b.delay, repeat: Infinity, ease: ['easeIn', 'easeOut', 'easeIn', 'easeOut'] },
+            x: { duration: b.duration, delay: b.delay, repeat: Infinity, ease: 'easeInOut' },
+            opacity: { duration: b.duration, delay: b.delay, repeat: Infinity, ease: 'easeInOut' },
+            rotate: { duration: b.duration, delay: b.delay, repeat: Infinity, ease: 'easeInOut' },
           }}
           className="absolute origin-center"
           style={{
             left: `${b.left}%`,
-            top: `${b.top}%`,
             width: b.size,
             height: b.size,
-            filter: `drop-shadow(0 0 5px ${b.color})`,
+            filter: `drop-shadow(0 0 6px rgba(255,255,255,0.4)) drop-shadow(0 0 12px ${b.color})`,
           }}
         >
           {/* Inner div handles the elegant flapping using scaleX */}
           <motion.div
-            animate={{ scaleX: [1, 0.4, 1] }}
+            animate={{ scaleX: [1, 0.15, 1] }}
             transition={{
               duration: b.flapSpeed,
               repeat: Infinity,
