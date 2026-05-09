@@ -93,6 +93,48 @@ const SparkleIcon = (props) => (
   </svg>
 )
 
+// Tiny love bird — a small, round-bodied bird with rapid wing flaps.
+// Much smaller and cuter than the dove. Drawn facing right.
+const LovebirdIcon = ({ color = '#f9a8c4', wingColor, flapSpeed = 0.35, ...props }) => {
+  const wc = wingColor || color
+  return (
+    <svg viewBox="0 0 32 24" {...props}>
+      {/* Tiny round body */}
+      <ellipse cx="16" cy="14" rx="5.5" ry="4" fill={color} />
+      {/* Head */}
+      <circle cx="22" cy="11" r="3" fill={color} />
+      {/* Tiny beak */}
+      <polygon points="24.5,10.5 27,11.2 24.5,12" fill="#d4a45c" />
+      {/* Eye */}
+      <circle cx="22.8" cy="10.5" r="0.6" fill="#1a0b14" />
+      {/* Tail feathers */}
+      <polygon points="10,13 5,10 7,14 5,17 10,15" fill={color} opacity="0.9" />
+      {/* Upper wing — fast flap */}
+      <path d="M14 12 Q 10 4 4 7 Q 10 10 14 12 Z" fill={wc} opacity="0.9">
+        <animateTransform
+          attributeName="transform"
+          type="rotate"
+          values="0 14 12; -40 14 12; 0 14 12"
+          keyTimes="0;0.4;1"
+          dur={`${flapSpeed}s`}
+          repeatCount="indefinite"
+        />
+      </path>
+      {/* Lower wing */}
+      <path d="M14 15 Q 10 20 6 18 Q 11 16 14 15 Z" fill={wc} opacity="0.65">
+        <animateTransform
+          attributeName="transform"
+          type="rotate"
+          values="0 14 15; 20 14 15; 0 14 15"
+          keyTimes="0;0.4;1"
+          dur={`${flapSpeed}s`}
+          repeatCount="indefinite"
+        />
+      </path>
+    </svg>
+  )
+}
+
 /**
  * Decorative layer of floating hearts, birds, butterflies, and sparkles.
  * Use as a `pointer-events-none absolute inset-0` overlay.
@@ -105,6 +147,7 @@ export default function HeartsAndBirds({
   className = '',
   hearts = true,
   birds = true,
+  lovebirds = true,
   butterflies = true,
   sparkles = true,
 }) {
@@ -198,8 +241,45 @@ export default function HeartsAndBirds({
       }
     }
 
+    // Tiny love birds — small, colorful, flit around randomly
+    if (lovebirds && !IS_LOW_POWER) {
+      const n = IS_MOBILE ? Math.round(3 * density) : Math.round(6 * density)
+      for (let i = 0; i < n; i++) {
+        // Random wandering path — 6 waypoints in a gentle loop
+        const cx = rand(10, 90)
+        const cy = rand(10, 85)
+        const spread = rand(8, 20)
+        const waypoints = 6
+        const xs = []
+        const ys = []
+        for (let k = 0; k <= waypoints; k++) {
+          const angle = (k / waypoints) * Math.PI * 2
+          xs.push(Math.cos(angle + rand(-0.5, 0.5)) * spread + rand(-5, 5))
+          ys.push(Math.sin(angle + rand(-0.5, 0.5)) * spread * 0.6 + rand(-3, 3))
+        }
+        // Close the loop
+        xs.push(xs[0])
+        ys.push(ys[0])
+
+        place('lovebird', () => ({
+          size: rand(12, 20),
+          cx,
+          cy,
+          xs,
+          ys,
+          color: ['#f9a8c4', '#e6336b', '#f472a6', '#fbbf24', '#fb923c', '#fda4af'][Math.floor(Math.random() * 6)],
+          wingColor: ['#ffe4ec', '#fef3c7', '#fce7f3', '#fff7ed'][Math.floor(Math.random() * 4)],
+          duration: rand(12, 22),
+          delay: rand(0, 10),
+          opacity: rand(0.5, 0.85),
+          flapSpeed: rand(0.25, 0.45),
+          fromLeft: Math.random() > 0.5,
+        }))
+      }
+    }
+
     return arr
-  }, [density, corners, hearts, birds, butterflies, sparkles])
+  }, [density, corners, hearts, birds, lovebirds, butterflies, sparkles])
 
   return (
     <div
@@ -355,6 +435,57 @@ export default function HeartsAndBirds({
                 height={it.size}
                 fill={it.color}
                 style={{ filter: `drop-shadow(0 0 4px ${it.color})` }}
+              />
+            </motion.span>
+          )
+        }
+
+        if (it.type === 'lovebird') {
+          const birdW = it.size * 1.4
+          const birdH = it.size
+          // Gentle random banking as it turns
+          const rotates = it.xs.map((dx, idx) => {
+            const nextIdx = (idx + 1) % it.xs.length
+            const dxNext = it.xs[nextIdx] - dx
+            return Math.max(-20, Math.min(20, dxNext * 2)) * (it.fromLeft ? 1 : -1)
+          })
+          return (
+            <motion.span
+              key={it.id}
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{
+                x: it.xs,
+                y: it.ys,
+                rotate: rotates,
+                opacity: [0, it.opacity, it.opacity, it.opacity, it.opacity, it.opacity, it.opacity, 0],
+                scale: [0.5, 1, 1, 1, 1, 1, 1, 0.5],
+              }}
+              transition={{
+                duration: it.duration,
+                delay: it.delay,
+                repeat: Infinity,
+                ease: 'easeInOut',
+                opacity: { times: [0, 0.05, 0.2, 0.4, 0.6, 0.8, 0.95, 1] },
+                scale: { times: [0, 0.05, 0.2, 0.4, 0.6, 0.8, 0.95, 1] },
+              }}
+              className="absolute"
+              style={{
+                left: `${it.cx}%`,
+                top: `${it.cy}%`,
+                width: birdW,
+                height: birdH,
+              }}
+            >
+              <LovebirdIcon
+                width={birdW}
+                height={birdH}
+                color={it.color}
+                wingColor={it.wingColor}
+                flapSpeed={it.flapSpeed}
+                style={{
+                  transform: it.fromLeft ? 'none' : 'scaleX(-1)',
+                  filter: `drop-shadow(0 0 3px ${it.color})`,
+                }}
               />
             </motion.span>
           )
