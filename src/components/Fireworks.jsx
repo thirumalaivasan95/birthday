@@ -392,31 +392,31 @@ export default function Fireworks({
       else if (type === 'star') count = 80
       else count = 95 + Math.floor(Math.random() * 45)
 
-      if (IS_LOW_POWER) count = Math.round(count * 0.35)
-      else if (IS_MOBILE) count = Math.round(count * 1.0)
+      if (IS_LOW_POWER) count = Math.round(count * 0.20)
+      else if (IS_MOBILE) count = Math.round(count * 0.40)
 
       for (let i = 0; i < count; i++) {
         particles.push(new Particle(x, y, hue, type, baseSpeed))
       }
 
-      // Hard cap
-      const maxParticles = IS_LOW_POWER ? 200 : IS_MOBILE ? 900 : 900
+      // Hard cap — much tighter on mobile to prevent stacking
+      const maxParticles = IS_LOW_POWER ? 120 : IS_MOBILE ? 280 : 900
       if (particles.length > maxParticles) {
         particles.splice(0, particles.length - maxParticles)
       }
 
-      // Shockwave ring (skip on low-power)
-      if (!IS_LOW_POWER) {
+      // Shockwave ring — desktop only (expensive stroke on mobile)
+      if (!IS_LOW_POWER && !IS_MOBILE) {
         shockwaves.push(new Shockwave(x, y, hue))
       }
 
-      // Flash pulse (skip on low-power)
-      if (!IS_LOW_POWER) {
+      // Flash pulse — desktop only (radial gradient per frame is costly)
+      if (!IS_LOW_POWER && !IS_MOBILE) {
         flashes.push(new Flash(x, y, hue, w, h))
       }
 
-      // Smoke embers (desktop only)
-      if (!IS_LOW_POWER) {
+      // Smoke embers — desktop only
+      if (!IS_LOW_POWER && !IS_MOBILE) {
         const smokeCount = Math.floor(rand(4, 9))
         for (let i = 0; i < smokeCount; i++) {
           smokes.push(new Smoke(
@@ -427,11 +427,11 @@ export default function Fireworks({
         }
       }
 
-      // Detonation flash on canvas
-      if (IS_LOW_POWER) {
-        ctx.fillStyle = `hsla(${hue}, 100%, 82%, 0.3)`
+      // Simple detonation flash — cheap fillStyle arc on mobile/low-power
+      if (IS_LOW_POWER || IS_MOBILE) {
+        ctx.fillStyle = `hsla(${hue}, 100%, 82%, 0.28)`
         ctx.beginPath()
-        ctx.arc(x, y, 35, 0, Math.PI * 2)
+        ctx.arc(x, y, 30, 0, Math.PI * 2)
         ctx.fill()
       } else {
         const grd = ctx.createRadialGradient(x, y, 0, x, y, 45)
@@ -471,8 +471,8 @@ export default function Fireworks({
           const hue = pick(PALETTES_HUE)
           rockets.push(new Rocket(x, targetY, hue, h))
 
-          // Cluster bursts (skip on low-power)
-          if (!IS_LOW_POWER && Math.random() < 0.38) {
+          // Cluster bursts — desktop only (doubles draw calls on mobile)
+          if (!IS_LOW_POWER && !IS_MOBILE && Math.random() < 0.38) {
             rockets.push(
               new Rocket(
                 clamp(x + rand(-w * 0.2, w * 0.2), w * 0.05, w * 0.95),
@@ -485,7 +485,9 @@ export default function Fireworks({
         }
       }
 
-      ctx.globalCompositeOperation = IS_LOW_POWER ? 'source-over' : 'lighter'
+      // lighter blend is a GPU compositing pass — very expensive on mobile.
+      // source-over looks slightly different but won't hang the phone.
+      ctx.globalCompositeOperation = (IS_LOW_POWER || IS_MOBILE) ? 'source-over' : 'lighter'
 
       // Smoke (below everything, source-over)
       if (smokes.length > 0) {
@@ -496,7 +498,7 @@ export default function Fireworks({
           if (smokes[i].alpha <= 0) smokes.splice(i, 1)
         }
         if (smokes.length > 60) smokes.splice(0, smokes.length - 60)
-        ctx.globalCompositeOperation = IS_LOW_POWER ? 'source-over' : 'lighter'
+        ctx.globalCompositeOperation = (IS_LOW_POWER || IS_MOBILE) ? 'source-over' : 'lighter'
       }
 
       // Shockwaves
@@ -548,9 +550,16 @@ export default function Fireworks({
 
       ctx.globalCompositeOperation = 'source-over'
 
-      // Schedule next frame (30fps cap on low-power)
+      // Frame-rate cap: low-power=20fps (skip 2), mobile=24fps (skip ~2.5→alt),
+      // desktop=uncapped.
       raf = requestAnimationFrame((t) => {
         if (IS_LOW_POWER) {
+          frameSkip = (frameSkip + 1) % 3
+          if (frameSkip !== 0) {
+            raf = requestAnimationFrame(loop)
+            return
+          }
+        } else if (IS_MOBILE) {
           frameSkip = (frameSkip + 1) % 2
           if (frameSkip === 1) {
             raf = requestAnimationFrame(loop)

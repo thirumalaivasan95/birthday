@@ -172,64 +172,81 @@ export default function HeartsAndBirds({
     }
 
     if (hearts) {
-      const n = IS_LOW_POWER ? Math.round(4 * density) : Math.round(14 * density)
+      // Mobile: fewer hearts but still clearly visible
+      const n = IS_LOW_POWER ? 3 : IS_MOBILE ? 6 : Math.round(14 * density)
       for (let i = 0; i < n; i++) {
         place('heart', () => ({
-          size: rand(10, 22),
+          size: IS_MOBILE ? rand(14, 26) : rand(10, 22),
           color: ['#f9a8c4', '#e6336b', '#ffe4ec', '#fbcfe0'][Math.floor(Math.random() * 4)],
           duration: rand(8, 18),
           delay: rand(0, 8),
           drift: rand(-30, 30),
-          opacity: rand(0.35, 0.85),
+          opacity: IS_MOBILE ? rand(0.55, 0.9) : rand(0.35, 0.85),
         }))
       }
     }
 
     if (birds && !IS_LOW_POWER) {
-      // Doves drift across the section from off-screen to off-screen
-      // (NEVER stuck in a loop inside the frame). 2–4 in flight at any
-      // moment, with staggered delays so a fresh one keeps appearing.
-      const baseN = IS_MOBILE ? 4 : 4
+      // Doves drift across the section from off-screen to off-screen.
+      const baseN = IS_MOBILE ? 3 : 4
       const n = Math.max(2, Math.round(baseN * density))
       for (let i = 0; i < n; i++) {
-        const size = rand(30, 48)
-        // Doves flap SLOWLY — 1.4–2.2s per beat (vs 0.5s for the old bird).
+        const size = IS_MOBILE ? rand(36, 56) : rand(30, 48)
         const flapDuration = rand(1.4, 2.2)
         place('bird', () => ({
           size,
-          // Soft warm whites — pure dove plumage with a hint of cream.
           color: ['#fff7fa', '#fbeae0', '#f8e6d6'][Math.floor(Math.random() * 3)],
-          // Long, peaceful crossings: 22–40s edge-to-edge.
           duration: rand(22, 40),
           delay: rand(0, 18),
-          opacity: rand(0.7, 0.95),
-          // Random flight band across the whole height (not just upper sky).
+          opacity: rand(0.75, 0.98),
           band: rand(8, 80),
-          // Gentle sine undulation — doves glide more than they wave.
           amplitude: rand(15, 45),
           waves: rand(1.2, 2.4),
           fromLeft: Math.random() > 0.5,
           flapDuration,
         }))
       }
+    } else if (birds && IS_LOW_POWER) {
+      // Low-power: 2 large doves so they're still clearly visible
+      const n = Math.max(1, Math.round(2 * density))
+      for (let i = 0; i < n; i++) {
+        const size = rand(44, 60)
+        const flapDuration = rand(1.6, 2.4)
+        place('bird', () => ({
+          size,
+          color: ['#fff7fa', '#fbeae0'][Math.floor(Math.random() * 2)],
+          duration: rand(28, 45),
+          delay: rand(0, 12),
+          opacity: rand(0.85, 0.98),
+          band: rand(15, 70),
+          amplitude: rand(10, 30),
+          waves: rand(1.0, 1.8),
+          fromLeft: Math.random() > 0.5,
+          flapDuration,
+        }))
+      }
     }
 
-    if (butterflies && !IS_LOW_POWER) {
-      const n = Math.round(5 * density)
+    if (butterflies) {
+      // On low-power: fewer but larger/more-opaque butterflies
+      const n = IS_LOW_POWER
+        ? Math.max(2, Math.round(3 * density))
+        : Math.round(5 * density)
       for (let i = 0; i < n; i++) {
         place('butterfly', () => ({
-          size: rand(14, 24),
+          size: IS_MOBILE ? rand(20, 36) : rand(14, 24),
           color: ['#fcd34d', '#f9a8c4', '#fbcfe0', '#fde68a'][Math.floor(Math.random() * 4)],
           duration: rand(10, 18),
           delay: rand(0, 6),
           drift: rand(-50, 50),
-          opacity: rand(0.45, 0.85),
+          opacity: IS_LOW_POWER ? rand(0.65, 0.9) : rand(0.45, 0.85),
         }))
       }
     }
 
     if (sparkles) {
-      const n = IS_LOW_POWER ? Math.round(5 * density) : Math.round(18 * density)
+      // Sparkles: cut heavily on mobile — they run on Framer Motion subscribers
+      const n = IS_LOW_POWER ? 3 : IS_MOBILE ? 6 : Math.round(18 * density)
       for (let i = 0; i < n; i++) {
         place('sparkle', () => ({
           size: rand(4, 10),
@@ -242,10 +259,11 @@ export default function HeartsAndBirds({
     }
 
     // Tiny love birds — small, colorful, flit around randomly
-    if (lovebirds && !IS_LOW_POWER) {
-      const n = IS_MOBILE ? Math.round(6 * density) : Math.round(6 * density)
+    if (lovebirds) {
+      // Low-power/mobile: 1–2 lovebirds max — they're the most complex (8-keyframe opacity + scale)
+      const baseN = IS_LOW_POWER ? 1 : IS_MOBILE ? 2 : 6
+      const n = Math.max(1, Math.round(baseN * density))
       for (let i = 0; i < n; i++) {
-        // Random wandering path — 6 waypoints in a gentle loop
         const cx = rand(10, 90)
         const cy = rand(10, 85)
         const spread = rand(8, 20)
@@ -257,12 +275,11 @@ export default function HeartsAndBirds({
           xs.push(Math.cos(angle + rand(-0.5, 0.5)) * spread + rand(-5, 5))
           ys.push(Math.sin(angle + rand(-0.5, 0.5)) * spread * 0.6 + rand(-3, 3))
         }
-        // Close the loop
         xs.push(xs[0])
         ys.push(ys[0])
 
         place('lovebird', () => ({
-          size: rand(12, 20),
+          size: IS_MOBILE ? rand(18, 28) : rand(12, 20),
           cx,
           cy,
           xs,
@@ -271,7 +288,7 @@ export default function HeartsAndBirds({
           wingColor: ['#ffe4ec', '#fef3c7', '#fce7f3', '#fff7ed'][Math.floor(Math.random() * 4)],
           duration: rand(12, 22),
           delay: rand(0, 10),
-          opacity: rand(0.5, 0.85),
+          opacity: IS_LOW_POWER ? rand(0.7, 0.92) : rand(0.5, 0.85),
           flapSpeed: rand(0.25, 0.45),
           fromLeft: Math.random() > 0.5,
         }))
@@ -325,18 +342,14 @@ export default function HeartsAndBirds({
         }
 
         if (it.type === 'bird') {
-          // Off-screen → across → off-screen. The dove FLIES AWAY each
-          // cycle and a new entry appears after `delay` (staggered across
-          // birds so the sky always has 2–4 visible without ever feeling
-          // looped).
-          const STEPS = 16
+          // Fewer keyframe steps on mobile = less JS interpolation per frame
+          const STEPS = IS_MOBILE ? 6 : 16
           const ys = []
           const rotates = []
           for (let k = 0; k <= STEPS; k++) {
             const t = k / STEPS
             const phase = t * it.waves * Math.PI * 2
             ys.push(Math.sin(phase) * it.amplitude)
-            // Bank gently with the climb/dive (±10°).
             rotates.push(Math.cos(phase) * 10 * (it.fromLeft ? 1 : -1))
           }
           const birdStyle = {
@@ -344,8 +357,6 @@ export default function HeartsAndBirds({
             left: 0,
             width: it.size * 1.6,
             height: it.size,
-            // Low-end devices: drop the glow filter — SVG drop-shadow is
-            // shockingly expensive on a 2008-class GPU.
             willChange: 'transform',
           }
           return (
@@ -362,8 +373,6 @@ export default function HeartsAndBirds({
                 duration: it.duration,
                 delay: it.delay,
                 repeat: Infinity,
-                // Staggered repeatDelay so a fresh dove enters as the
-                // previous one exits — no synchronized flock effect.
                 repeatDelay: rand(2, 8),
                 ease: 'linear',
                 opacity: { times: [0, 0.06, 0.94, 1] },
@@ -376,10 +385,7 @@ export default function HeartsAndBirds({
                 height={it.size}
                 color={it.color}
                 flapDuration={it.flapDuration}
-                style={{
-                  // Mirror horizontally when flying right→left.
-                  transform: it.fromLeft ? 'none' : 'scaleX(-1)',
-                }}
+                style={{ transform: it.fromLeft ? 'none' : 'scaleX(-1)' }}
               />
             </motion.span>
           )
@@ -409,7 +415,7 @@ export default function HeartsAndBirds({
                 width={it.size}
                 height={it.size}
                 fill={it.color}
-                style={{ filter: `drop-shadow(0 0 6px ${it.color})` }}
+                style={IS_MOBILE ? undefined : { filter: `drop-shadow(0 0 6px ${it.color})` }}
               />
             </motion.span>
           )
@@ -434,7 +440,7 @@ export default function HeartsAndBirds({
                 width={it.size}
                 height={it.size}
                 fill={it.color}
-                style={{ filter: `drop-shadow(0 0 4px ${it.color})` }}
+                style={IS_MOBILE ? undefined : { filter: `drop-shadow(0 0 4px ${it.color})` }}
               />
             </motion.span>
           )
@@ -484,7 +490,8 @@ export default function HeartsAndBirds({
                 flapSpeed={it.flapSpeed}
                 style={{
                   transform: it.fromLeft ? 'none' : 'scaleX(-1)',
-                  filter: `drop-shadow(0 0 3px ${it.color})`,
+                  // drop-shadow is a GPU-composited filter — skip on mobile
+                  ...(IS_MOBILE ? {} : { filter: `drop-shadow(0 0 3px ${it.color})` }),
                 }}
               />
             </motion.span>

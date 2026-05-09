@@ -2,12 +2,11 @@ import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { isMobile as IS_MOBILE, isLowPower as IS_LOW_POWER } from '../utils/device.js'
 
-// Counts halved on mobile, halved again on old iOS Safari. Each motion
-// element costs a subscription + transform-update per frame; on the SE
-// the difference between 18 hearts and 6 hearts is ~30% of the budget.
-const HEARTS      = IS_LOW_POWER ? 8  : IS_MOBILE ? 18 : 18
-const PARTICLES   = IS_LOW_POWER ? 16 : IS_MOBILE ? 36 : 36
-const BUTTERFLIES = IS_LOW_POWER ? 4  : IS_MOBILE ? 15 : 15
+// Counts scaled by device capability.
+// Mobile: visually impactful counts that won't hang the phone.
+const HEARTS      = IS_LOW_POWER ? 4  : IS_MOBILE ? 6  : 18
+const PARTICLES   = IS_LOW_POWER ? 0  : IS_MOBILE ? 8  : 36
+const BUTTERFLIES = IS_LOW_POWER ? 3  : IS_MOBILE ? 5  : 15
 
 function rand(min, max) {
   return Math.random() * (max - min) + min
@@ -68,15 +67,17 @@ export default function HeartBackground() {
       Array.from({ length: BUTTERFLIES }, (_, i) => ({
         id: i,
         left: rand(0, 100),
-        size: rand(12, 28),
+        // Larger on mobile so they pop on a small screen
+        size: IS_MOBILE ? rand(22, 42) : rand(12, 28),
         delay: rand(0, 12),
         duration: rand(14, 30),
-        opacity: rand(0.3, 0.7), // Higher opacity for a vibrant glow
+        // Higher base opacity on low-power/mobile — fewer but more visible
+        opacity: IS_LOW_POWER ? rand(0.65, 0.9) : IS_MOBILE ? rand(0.55, 0.85) : rand(0.3, 0.7),
         drift1: rand(-30, 30),
         drift2: rand(-60, 60),
         drift3: rand(-30, 30),
         color: ['#fb7185', '#fbcfe0', '#fde68a', '#e6336b', '#fda4af'][Math.floor(Math.random() * 5)],
-        flapSpeed: rand(0.4, 0.9), // Faster flutter
+        flapSpeed: rand(0.4, 0.9),
       })),
     [],
   )
@@ -104,7 +105,7 @@ export default function HeartBackground() {
         </>
       )}
 
-      {!IS_LOW_POWER && particles.map((p) => (
+      {particles.map((p) => (
         <motion.span
           key={`p-${p.id}`}
           initial={{ opacity: 0 }}
@@ -126,7 +127,7 @@ export default function HeartBackground() {
         />
       ))}
 
-      {!IS_LOW_POWER && hearts.map((h) => (
+      {hearts.map((h) => (
         <motion.svg
           key={`h-${h.id}`}
           viewBox="0 0 24 24"
@@ -145,17 +146,18 @@ export default function HeartBackground() {
           className="absolute fill-rose-400"
           style={{
             left: `${h.left}%`,
-            width: h.size,
-            height: h.size,
-            filter: 'drop-shadow(0 0 6px rgba(230,51,107,0.5))',
+            width: IS_MOBILE ? h.size * 1.5 : h.size,
+            height: IS_MOBILE ? h.size * 1.5 : h.size,
+            // drop-shadow is a GPU compositing layer — skip on mobile
+            ...(IS_MOBILE ? {} : { filter: 'drop-shadow(0 0 8px rgba(230,51,107,0.7))' }),
           }}
         >
           <path d="M12 21s-7.5-4.7-9.7-9.3C.6 7.6 3.1 4 6.6 4c2 0 3.5 1.1 4.4 2.6h2c.9-1.5 2.4-2.6 4.4-2.6 3.5 0 6 3.6 4.3 7.7C19.5 16.3 12 21 12 21z" />
         </motion.svg>
       ))}
 
-      {/* Butterflies — fluttery, glowing, upward-drifting like hearts but with unique character */}
-      {!IS_LOW_POWER && butterflies.map((b) => (
+      {/* Butterflies — glowing, upward-drifting */}
+      {butterflies.map((b) => (
         <motion.div
           key={`bf-${b.id}`}
           initial={{ y: '110vh', x: 0, opacity: 0, rotate: 0 }}
@@ -176,27 +178,38 @@ export default function HeartBackground() {
             left: `${b.left}%`,
             width: b.size,
             height: b.size,
-            filter: `drop-shadow(0 0 6px rgba(255,255,255,0.4)) drop-shadow(0 0 12px ${b.color})`,
+            // Double drop-shadow is very expensive on mobile — use a single one or skip
+            ...(IS_MOBILE
+              ? {}
+              : { filter: `drop-shadow(0 0 6px rgba(255,255,255,0.4)) drop-shadow(0 0 12px ${b.color})` }
+            ),
           }}
         >
-          {/* Inner div handles the elegant flapping using scaleX */}
-          <motion.div
-            animate={{ scaleX: [1, 0.15, 1] }}
-            transition={{
-              duration: b.flapSpeed,
-              repeat: Infinity,
-              ease: 'easeInOut'
-            }}
-            style={{ width: '100%', height: '100%', transformOrigin: 'center' }}
-          >
-            <ButterflySVG
-              width={b.size}
-              height={b.size}
-              color={b.color}
-            />
-          </motion.div>
+          {/* Flapping: on mobile use CSS animation (no extra motion subscriber),
+              on desktop use motion.div for smoother easing */}
+          {IS_MOBILE ? (
+            <div
+              style={{
+                width: '100%',
+                height: '100%',
+                transformOrigin: 'center',
+                animation: `bf-flap ${b.flapSpeed}s ease-in-out infinite`,
+              }}
+            >
+              <ButterflySVG width={b.size} height={b.size} color={b.color} />
+            </div>
+          ) : (
+            <motion.div
+              animate={{ scaleX: [1, 0.15, 1] }}
+              transition={{ duration: b.flapSpeed, repeat: Infinity, ease: 'easeInOut' }}
+              style={{ width: '100%', height: '100%', transformOrigin: 'center' }}
+            >
+              <ButterflySVG width={b.size} height={b.size} color={b.color} />
+            </motion.div>
+          )}
         </motion.div>
       ))}
+      <style>{`@keyframes bf-flap { 0%,100%{transform:scaleX(1)} 50%{transform:scaleX(0.15)} }`}</style>
 
       {/* Subtle vignette */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.55)_100%)]" />
