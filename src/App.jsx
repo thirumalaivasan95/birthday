@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState } from 'react'
+import BackgroundMusic from './components/BackgroundMusic.jsx'
 import HeartBackground from './components/HeartBackground.jsx'
 import ScrollProgress from './components/ScrollProgress.jsx'
 import SectionNav from './components/SectionNav.jsx'
@@ -34,6 +35,7 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-romance-gradient">
+      <BackgroundMusic />
       {!introDone && <BirthdayIntro onFinish={() => setIntroDone(true)} />}
 
       <ScrollProgress />
